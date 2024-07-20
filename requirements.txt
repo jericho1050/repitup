@@ -1,0 +1,5 @@
+tortoise-orm
+fastapi
+uvicorn
+pydantic
+tortoise-orm[psycopg]
