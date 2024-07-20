@@ -2,4 +2,7 @@ tortoise-orm
 fastapi
 uvicorn
 pydantic
-tortoise-orm[psycopg]
+tortoise-orm[asyncpg]
+pytest
+validators
+python-dotenv
