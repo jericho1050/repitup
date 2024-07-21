@@ -1,8 +1,11 @@
+bcrypt
 tortoise-orm
 fastapi
 uvicorn
 pydantic
 tortoise-orm[asyncpg]
 pytest
+pytest-asyncio
 validators
 python-dotenv
+aerich

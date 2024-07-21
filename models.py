@@ -1,3 +1,4 @@
+import bcrypt
 from tortoise import fields, models
 from validators import email
 from helpers import validate_non_negative
@@ -6,12 +7,18 @@ MAXLENGTH = 50
 
 class User(models.Model):
     username = fields.CharField(max_length=MAXLENGTH, unique=True)
-    password_hash = fields.CharField(max_length=MAXLENGTH, default="misc")
+    password = fields.CharField(max_length=MAXLENGTH, default="misc")  # Renamed from _password
     email = fields.CharField(max_length=MAXLENGTH)
     created_at = fields.DatetimeField(auto_now_add=True)
 
     class PydanticMeta:
-        exclude = ["password_hash"]
+        exclude = ["password"]
+
+    def __init__(self, *args, **kwargs):
+        password = kwargs.pop('password', None)
+        super().__init__(*args, **kwargs)
+        if password:
+            self.set_password(password)  # Use a method to hash and set the password
 
     @staticmethod
     def validate_email(s):
@@ -24,9 +31,13 @@ class User(models.Model):
         if not self.validate_email(self.email):
             raise ValueError("Invalid email")
         await super().save(*args, **kwargs)
-        
-        
 
+    def set_password(self, password):
+        # Hash password and set it
+        self.password = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode() 
+
+        
+    
 
 class WorkoutPlan(models.Model):
     user = fields.ForeignKeyField("models.User", on_delete=fields.CASCADE)

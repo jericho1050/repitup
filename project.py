@@ -1,31 +1,9 @@
-import os
+from database import TORTOISE_ORM
 from fastapi import FastAPI, HTTPException
 from tortoise.contrib.fastapi import register_tortoise
-from helpers import get_db_uri
-from dotenv import load_dotenv
-import models
-
-load_dotenv()
+from models import *
 
 app = FastAPI()
-
-# Corrected Tortoise ORM configuration
-TORTOISE_ORM = {
-    "connections": {
-        "default": get_db_uri(
-            user="jericho",
-            password="test",
-            host="127.0.0.1",
-            db="mydatabase2",
-        ),
-    },
-    "apps": {  # Corrected key here
-        "models": {
-            "models": ["models"],  # Specify the location of your models
-            "default_connection": "default",
-        },
-    },
-}
 
 register_tortoise(
     app,
@@ -37,8 +15,8 @@ register_tortoise(
 @app.get("/db_check")
 async def db_check():
     try:
-        await models.User.first()
-        return {"status": "Connected to the database successfully"}
+        await User.first()
+        return {"status": f"Connected to the database successfully"}
     except Exception as e:
         # It's a good practice to log the exception message to understand the specific failure
         print(f"Database connection failed: {e}")
