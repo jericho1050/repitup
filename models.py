@@ -7,7 +7,7 @@ MAXLENGTH = 50
 
 class User(models.Model):
     username = fields.CharField(max_length=MAXLENGTH, unique=True)
-    password = fields.CharField(max_length=MAXLENGTH, default="misc")  # Renamed from _password
+    password = fields.TextField(default="misc")  # Renamed from _password
     email = fields.CharField(max_length=MAXLENGTH)
     created_at = fields.DatetimeField(auto_now_add=True)
 
