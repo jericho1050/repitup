@@ -5,6 +5,7 @@ fastapi-azure-auth
 pytest
 pytest-asyncio
 pydantic
+pydantic-settings
 python-dotenv
 starlette-admin
 tortoise-orm

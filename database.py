@@ -2,7 +2,7 @@ import os
 from helpers import get_db_uri
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv(".env.database")
 
 # Tortoise ORM configuration
 TORTOISE_ORM = {

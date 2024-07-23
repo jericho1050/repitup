@@ -6,37 +6,8 @@ MAXLENGTH = 50
 
 
 class User(models.Model):
-    username = fields.CharField(max_length=MAXLENGTH, unique=True)
-    password = fields.TextField(default="misc")  # Renamed from _password
-    email = fields.CharField(max_length=MAXLENGTH)
-    created_at = fields.DatetimeField(auto_now_add=True)
-
-    class PydanticMeta:
-        exclude = ["password"]
-
-    def __init__(self, *args, **kwargs):
-        password = kwargs.pop('password', None)
-        super().__init__(*args, **kwargs)
-        if password:
-            self.set_password(password)  # Use a method to hash and set the password
-
-    @staticmethod
-    def validate_email(s):
-        if email(s):
-            return True
-        else:
-            return False
-
-    async def save(self, *args, **kwargs):
-        if not self.validate_email(self.email):
-            raise ValueError("Invalid email")
-        await super().save(*args, **kwargs)
-
-    def set_password(self, password):
-        # Hash password and set it
-        self.password = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode() 
-
-        
+    object_id = fields.CharField(max_length=MAXLENGTH + 50, pk=True) # this will be used for querying Objects
+    
     
 
 class WorkoutPlan(models.Model):
