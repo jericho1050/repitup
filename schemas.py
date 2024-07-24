@@ -1,4 +1,4 @@
-import datetime
+from typing import Optional
 from tortoise.contrib.pydantic import pydantic_model_creator, pydantic_queryset_creator
 from pydantic import BaseModel
 from models import *
@@ -13,11 +13,12 @@ ExerciseLog_Pydantic = pydantic_model_creator(Exercise)
 CalendarEntry_Pydantic = pydantic_model_creator(CalendarEntry)
 
 
-class UserIn(BaseModel):
-    username: str
-    email: str
-    password: str
+class WorkoutPlanBase(BaseModel):
+    name: str
+    description: str
 
-class UserIn_2(BaseModel):
-    username: str
-    password: str
+class WorkoutPlanCreate(WorkoutPlanBase):
+    ...
+class WorkoutPlanUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None

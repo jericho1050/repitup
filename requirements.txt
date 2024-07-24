@@ -1,14 +1,13 @@
 aerich
-bcrypt
+asgi-lifespan==2.*
 fastapi
 fastapi-azure-auth
+httpx
 pytest
 pytest-asyncio
 pydantic
 pydantic-settings
 python-dotenv
-starlette-admin
 tortoise-orm
 tortoise-orm[asyncpg]
 uvicorn
-validators

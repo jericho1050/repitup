@@ -3,39 +3,34 @@ from database import TORTOISE_ORM
 from fastapi import FastAPI, HTTPException, Security, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi_azure_auth import B2CMultiTenantAuthorizationCodeBearer, user
-from tortoise.contrib.pydantic import pydantic_queryset_creator
-from tortoise.contrib.fastapi import register_tortoise
+from tortoise.contrib.fastapi import RegisterTortoise
 from models import *
 from schemas import *
 from settings import settings
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
+from helpers import get_authenticated_user
+from controllers import *
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """
-    Load OpenID config on startup.
+    Load OpenID config on startup and Registers Tortoise-ORM with set-up and tear-down inside a FastAPI application\'ss lifespan.
 
-    This function is an async context manager that loads the OpenID config
-    when the application starts up. It uses the `azure_scheme.openid_config.load_config()`
-    function to load the config. The config is loaded before the context is entered,
-    and it is unloaded after the context is exited.
 
-    Usage:
-    ```
-    async with lifespan(app):
-        # Code that requires the OpenID config
-    ```
 
-    Returns:
-    None
-
-    Raises:
-    Any exceptions raised by `azure_scheme.openid_config.load_config()`
+    :raises:Any exceptions raised by `azure_scheme.openid_config.load_config()`
+    :return: None
     """
     await azure_scheme.openid_config.load_config()
-    yield
+    async with RegisterTortoise(
+        app,
+        config=TORTOISE_ORM,
+        generate_schemas=True,
+        add_exception_handlers=True,
+    ):
+        yield
 
 
 app = FastAPI(
@@ -45,6 +40,7 @@ app = FastAPI(
         "clientId": settings.OPENAPI_CLIENT_ID,
         "scopes": settings.SCOPE_NAME,
     },
+    lifespan=lifespan
 )
 
 if settings.BACKEND_CORS_ORIGINS:
@@ -65,13 +61,6 @@ azure_scheme = B2CMultiTenantAuthorizationCodeBearer(
     validate_iss=False,
 )
 
-register_tortoise(
-    app,
-    config=TORTOISE_ORM,
-    generate_schemas=True,
-    add_exception_handlers=True,
-)
-
 
 def main():
     uvicorn.run("project:app", reload=True)
@@ -83,16 +72,92 @@ def main():
     dependencies=[Security(azure_scheme)],
 )
 async def get_workout_plans(request: Request) -> list:
-    user_dict = request.state.user.dict()
-    if not user_dict:
-        raise HTTPException(status_code=401, detail="Unauthorized User")
-    user = await User.get_or_create(object_id=user_dict["sub"])
+    """
+    Retrieve workout plans for the authenticated user.
 
-    try:
-        workout_plans = WorkoutPlan.filter(user=user)
-        return await WorkoutPlan_Pydantic_List.from_queryset(workout_plans)
-    except Exception as e: 
-        raise HTTPException(status_code=500, detail=f"Failed to retrieve workout plans: {e}")
+    Args:
+        request (Request): The incoming request object.
+
+    Returns:
+        list: A list of workout plans in the response model format.
+
+    Raises:
+        HTTPException: If the user is unauthorized or if there is an error retrieving the workout plans.
+    """
+
+    user = await get_authenticated_user(request)
+    return await get_user_workout_plans(user)
+
+
+@app.get(
+    "/workout-plan/{id}",
+    response_model=WorkoutPlan_Pydantic,
+    dependencies=[Security(azure_scheme)],
+)
+async def get_workout_plan(id: int) -> dict:
+    """
+    Retrieve a workout plan by its ID.
+
+    Parameters:
+    - id (int): The ID of the workout plan to retrieve.
+
+    Returns:
+    - WorkoutPlan_Pydantic: The retrieved workout plan.
+
+    Raises:
+    - HTTPException: If the workout plan with the given ID does not exist.
+    """
+    return await get_user_workout_plan(id)
+
+
+@app.post(
+    "/workout-plans",
+    response_model=WorkoutPlan_Pydantic,
+    dependencies=[Security(azure_scheme)],
+)
+async def create_workout_plan(
+    request: Request, workout_plan: WorkoutPlanCreate
+) -> dict:
+    """
+    Create a new workout plan for a user.
+
+    Args:
+        request (Request): The incoming request object.
+        workout_plan (WorkoutPlanCreate): The workout plan data to be created.
+
+    Returns:
+        obj: The created workout plan.
+
+    Raises:
+        HTTPException: If there is an error creating the workout plan.
+    """
+    user = await get_authenticated_user(request)
+    return await create_user_workout_plan(user, workout_plan)
+
+
+@app.patch(
+    "/workout-plan/{id}",
+    response_model=WorkoutPlan_Pydantic,
+    dependencies=[Security(azure_scheme)],
+)
+async def update_workout_plan(
+    request: Request, id: int, workout_plan: WorkoutPlanUpdate
+) -> dict:
+    """
+    Update a workout plan for a specific ID.
+
+    Parameters:
+    - request: The incoming request object.
+    - id: The ID of the workout plan to be updated.
+    - workout_plan: The updated workout plan data.
+
+    Returns:
+    - An object containing the updated workout plan.
+
+    """
+    user = await get_authenticated_user(request)
+    return await update_user_workout_plan(id, user, workout_plan)
+
 
 if __name__ == "__main__":
     main()
