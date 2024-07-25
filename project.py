@@ -1,6 +1,6 @@
 import uvicorn
 from database import TORTOISE_ORM
-from fastapi import FastAPI, HTTPException, Security, Request
+from fastapi import FastAPI, HTTPException, Security, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi_azure_auth import B2CMultiTenantAuthorizationCodeBearer, user
 from tortoise.contrib.fastapi import RegisterTortoise
@@ -9,7 +9,6 @@ from schemas import *
 from settings import settings
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
-from helpers import get_authenticated_user
 from controllers import *
 
 
@@ -40,7 +39,7 @@ app = FastAPI(
         "clientId": settings.OPENAPI_CLIENT_ID,
         "scopes": settings.SCOPE_NAME,
     },
-    lifespan=lifespan
+    lifespan=lifespan,
 )
 
 if settings.BACKEND_CORS_ORIGINS:
@@ -71,7 +70,7 @@ def main():
     response_model=WorkoutPlan_Pydantic_List,
     dependencies=[Security(azure_scheme)],
 )
-async def get_workout_plans(request: Request) -> list:
+async def get_workout_plans(request: Request):
     """
     Retrieve workout plans for the authenticated user.
 
@@ -84,7 +83,6 @@ async def get_workout_plans(request: Request) -> list:
     Raises:
         HTTPException: If the user is unauthorized or if there is an error retrieving the workout plans.
     """
-
     user = await get_authenticated_user(request)
     return await get_user_workout_plans(user)
 
@@ -94,20 +92,22 @@ async def get_workout_plans(request: Request) -> list:
     response_model=WorkoutPlan_Pydantic,
     dependencies=[Security(azure_scheme)],
 )
-async def get_workout_plan(id: int) -> dict:
+async def get_workout_plan(request: Request, id: int):
     """
     Retrieve a workout plan by its ID.
 
-    Parameters:
-    - id (int): The ID of the workout plan to retrieve.
+    Args:
+        request (Request): The incoming request object.
+        id (int): The ID of the workout plan to retrieve.
 
     Returns:
-    - WorkoutPlan_Pydantic: The retrieved workout plan.
+        WorkoutPlan_Pydantic: The retrieved workout plan.
 
     Raises:
-    - HTTPException: If the workout plan with the given ID does not exist.
+        HTTPException: If the workout plan with the given ID does not exist.
     """
-    return await get_user_workout_plan(id)
+    user = await get_authenticated_user(request)
+    return await get_user_workout_plan(id, user)
 
 
 @app.post(
@@ -115,18 +115,16 @@ async def get_workout_plan(id: int) -> dict:
     response_model=WorkoutPlan_Pydantic,
     dependencies=[Security(azure_scheme)],
 )
-async def create_workout_plan(
-    request: Request, workout_plan: WorkoutPlanCreate
-) -> dict:
+async def create_workout_plan(request: Request, workout_plan: WorkoutPlanCreate):
     """
-    Create a new workout plan for a user.
+    Create a new workout plan for the authenticated user.
 
     Args:
         request (Request): The incoming request object.
         workout_plan (WorkoutPlanCreate): The workout plan data to be created.
 
     Returns:
-        obj: The created workout plan.
+        WorkoutPlan_Pydantic: The created workout plan.
 
     Raises:
         HTTPException: If there is an error creating the workout plan.
@@ -142,21 +140,90 @@ async def create_workout_plan(
 )
 async def update_workout_plan(
     request: Request, id: int, workout_plan: WorkoutPlanUpdate
-) -> dict:
+):
     """
     Update a workout plan for a specific ID.
 
-    Parameters:
-    - request: The incoming request object.
-    - id: The ID of the workout plan to be updated.
-    - workout_plan: The updated workout plan data.
+    Args:
+        request (Request): The incoming request object.
+        id (int): The ID of the workout plan to be updated.
+        workout_plan (WorkoutPlanUpdate): The updated workout plan data.
 
     Returns:
-    - An object containing the updated workout plan.
+        WorkoutPlan_Pydantic: The updated workout plan.
 
+    Raises:
+        HTTPException: If there is an error updating the workout plan.
     """
     user = await get_authenticated_user(request)
     return await update_user_workout_plan(id, user, workout_plan)
+
+
+@app.delete("/workout-plan/{id}", dependencies=[Security(azure_scheme)])
+async def delete_workout_plan(request: Request, id: int) -> None:
+    """
+    Delete a workout plan for a specific ID.
+
+    Args:
+        request (Request): The incoming request object.
+        id (int): The ID of the workout plan to be deleted.
+
+    Returns:
+        None: This function does not return any data.
+
+    Raises:
+        HTTPException: If there is an error deleting the workout plan.
+    """
+    user = await get_authenticated_user(request)
+    await delete_user_workout_plan(id, user)
+    return Response(status_code=204)
+
+
+@app.get(
+    "/workout-sessions",
+    response_model=WorkoutSession_Pydantic_List,
+    dependencies=[Security(azure_scheme)],
+)
+async def get_workout_sessions(request: Request):
+    user = await get_authenticated_user(request)
+    return await get_user_workout_sessions(user)
+
+
+@app.get(
+    "/workout-session/{id}",
+    response_model=WorkoutSession_Pydantic,
+    dependencies=[Security(azure_scheme)],
+)
+async def get_workout_session(request: Request, id: int):
+    user = await get_authenticated_user(request)
+    return await get_user_workout_session(id, user)
+
+
+@app.post(
+    "/workout-sessions",
+    response_model=WorkoutSession_Pydantic,
+    dependencies=[Security(azure_scheme)],
+)
+async def create_workout_session(
+    request: Request, workout_session: WorkoutSessionCreate
+):
+    user = await get_authenticated_user(request)
+    return await create_user_workout_session(user, workout_session)
+
+
+@app.patch(
+    "/workout-session/{id}",
+    response_model=WorkoutSession_Pydantic,
+    dependencies=[Security(azure_scheme)],
+)
+async def update_workout_session(request: Request, id: int): ...
+
+
+@app.delete(
+    "/workout-session/{id}",
+    dependencies=[Security(azure_scheme)],
+)
+async def delete_workout_session(request: Request, id: int) -> None: ...
 
 
 if __name__ == "__main__":

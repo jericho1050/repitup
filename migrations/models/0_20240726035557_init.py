@@ -17,20 +17,19 @@ CREATE TABLE IF NOT EXISTS "exercise" (
     "muscle_group" VARCHAR(50) NOT NULL
 );
 CREATE TABLE IF NOT EXISTS "user" (
-    "object_id" VARCHAR(50) NOT NULL  PRIMARY KEY
+    "object_id" VARCHAR(100) NOT NULL  PRIMARY KEY
 );
 CREATE TABLE IF NOT EXISTS "workoutplan" (
     "id" SERIAL NOT NULL PRIMARY KEY,
     "name" VARCHAR(25) NOT NULL,
     "description" TEXT NOT NULL,
-    "user_id" VARCHAR(50) NOT NULL REFERENCES "user" ("object_id") ON DELETE CASCADE
+    "user_id" VARCHAR(100) NOT NULL REFERENCES "user" ("object_id") ON DELETE CASCADE
 );
 CREATE TABLE IF NOT EXISTS "workoutsession" (
     "id" SERIAL NOT NULL PRIMARY KEY,
     "date" TIMESTAMPTZ NOT NULL  DEFAULT CURRENT_TIMESTAMP,
     "comments" TEXT NOT NULL,
-    "user_id" VARCHAR(50) NOT NULL REFERENCES "user" ("object_id") ON DELETE CASCADE,
-    "workout_plan_id" INT NOT NULL REFERENCES "workoutplan" ("id") ON DELETE CASCADE
+    "user_id" VARCHAR(100) NOT NULL REFERENCES "user" ("object_id") ON DELETE CASCADE
 );
 CREATE TABLE IF NOT EXISTS "calendarentry" (
     "id" SERIAL NOT NULL PRIMARY KEY,

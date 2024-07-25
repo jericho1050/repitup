@@ -7,7 +7,7 @@ def validate_non_negative(value):
         raise ValueError("Value must be non-negative")
     
 class User(models.Model):
-    object_id = fields.CharField(max_length=MAXLENGTH + 50, pk=True) # this will be used for querying Objects
+    object_id = fields.CharField(max_length=MAXLENGTH + 50, primary_key=True) # this will be used for querying Objects
     
 
 class WorkoutPlan(models.Model):
@@ -18,7 +18,6 @@ class WorkoutPlan(models.Model):
 
 class WorkoutSession(models.Model):
     user = fields.ForeignKeyField("models.User", on_delete=fields.CASCADE)
-    workout_plan = fields.ForeignKeyField("models.WorkoutPlan", on_delete=fields.CASCADE)
     date = fields.DatetimeField(auto_now=True)
     comments = fields.TextField()
 
