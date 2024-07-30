@@ -1,8 +1,10 @@
 from typing import Coroutine
 from fastapi import Request, HTTPException
-
 from models import *
 from schemas import *
+
+
+from tortoise.exceptions import DoesNotExist
 
 
 async def get_authenticated_user(request: Request) -> User:
@@ -32,6 +34,7 @@ async def get_user_workout_plans(user: User) -> list[WorkoutPlanBase]:
     :param user: The user for whom the workout plans are retrieved.
     :return: A list of workout plans in the response model format.
     :raises HTTPException: If there is an error retrieving the workout plans.
+    :rtype: []
     """
     try:
         workout_plans = WorkoutPlan.filter(user=user)
@@ -56,6 +59,8 @@ async def get_user_workout_plan(id: int, user: User) -> WorkoutPlan:
     try:
         workout_plan_obj = await WorkoutPlan.get(id=id, user=user)
         return workout_plan_obj
+    except DoesNotExist:
+        raise HTTPException(status_code=404, detail=f"Workout Plan not found")
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Failed to retrieve workout plan: {e}"
@@ -102,6 +107,8 @@ async def update_user_workout_plan(
         )
         await workout_plan.save()
         return workout_plan
+    except DoesNotExist:
+        raise HTTPException(status_code=404, detail="Workout plan not found ")
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Failed to update workout plan: {e}"
@@ -120,7 +127,8 @@ async def delete_user_workout_plan(id: int, user: User) -> None:
     try:
         workout_plan_obj = await WorkoutPlan.get(id=id, user=user)
         await workout_plan_obj.delete()
-
+    except DoesNotExist:
+        raise HTTPException(status_code=404, detail="Workout plan does not exist")
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Failed to delete workout plan: {e}"
@@ -161,6 +169,8 @@ async def get_user_workout_session(id: int, user: User) -> WorkoutSessionBase:
     try:
         workout_sesssion_obj = await WorkoutSession.get(id=id, user=user)
         return workout_sesssion_obj
+    except DoesNotExist:
+        raise HTTPException(status_code=404, detail="Workout Session not found")
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Failed to retrieve workout session: {e}"
@@ -215,7 +225,8 @@ async def update_user_workout_session(
         )
         await workout_session.save()
         return workout_session
-
+    except DoesNotExist:
+        raise HTTPException(status_code=404, detail="Workout session not found")
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Failed to update workout session: {e}"
@@ -236,7 +247,125 @@ async def delete_user_workout_session(id: int, user: User) -> None:
     try:
         workout_session_obj = await WorkoutSession.get(id=id, user=user)
         await workout_session_obj.delete()
+    except DoesNotExist:
+        raise HTTPException(status_code=404, detail="Workout session not found")
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Failed to delete workout session: {e}"
+        )
+
+
+async def get_user_exercise_logs(user: User) -> ExerciseLog_Pydantic_List:  # type: ignore
+    """
+    Retrieve all exercise logs for a user.
+
+    :param user: The user for whom the exercise logs are retrieved.
+    :type user: User
+    :raises HTTPException: If there is an error retrieving the exercise logs.
+    :return: A list of exercise logs for the user.
+    :rtype: []
+    """
+    try:
+        exercise_logs = await ExerciseLog.filter(user=user)
+        return exercise_logs
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Failed to retrieve exercise logs: {e}"
+        )
+
+
+async def get_user_exercise_log(id: int, user: User) -> ExerciseLog_Pydantic:  # type: ignore
+    """
+    Retrieve a specific exercise log for a user by ID.
+
+    :param id: The ID of the exercise log to retrieve.
+    :type id: int
+    :param user: The user for whom the exercise log is retrieved.
+    :type user: User
+    :raises HTTPException: If there is an error retrieving the exercise log.
+    :return: The exercise log for the user.
+    :rtype: ExerciseLog
+    """
+    try:
+        exercise_log_obj = await ExerciseLog.get(id=id, user=user)
+        return exercise_log_obj
+    except DoesNotExist:
+        raise HTTPException(status_code=404, detail=f"Exercise Log not found")
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Failed to retrieve exercise log: {e}"
+        )
+
+
+async def create_user_exercise_log(user: User, exercise_log: ExerciseLog_Pydantic) -> ExerciseLog_Pydantic:  # type: ignore
+    """
+    Create a new exercise log for a user.
+
+    :param user: The user for whom the exercise log is created.
+    :type user: User
+    :param exercise_log: The exercise log data to create.
+    :type exercise_log: ExerciseLog_Pydantic
+    :raises HTTPException: If there is an error creating the exercise log.
+    :return: The created exercise log.
+    :rtype: ExerciseLog_Pydantic
+    """
+    try:
+        exercise_log_obj = await ExerciseLog.create(
+            user=user, **exercise_log.model_dump()
+        )
+        return exercise_log_obj
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Failed to create exercise log: {e}"
+        )
+
+
+async def update_user_exercise_log(id, user, exercise) -> ExerciseLog_Pydantic:  # type: ignore
+    """
+    Update an existing exercise log for a user.
+
+    :param id: The ID of the exercise log to update.
+    :type id: int
+    :param user: The user for whom the exercise log is updated.
+    :type user: User
+    :param exercise: The updated exercise log data.
+    :type exercise: ExerciseLog_Pydantic
+    :raises HTTPException: If there is an error updating the exercise log.
+    :return: The updated exercise log.
+    :rtype: ExerciseLog
+    """
+    try:
+        exercise_log_obj = await ExerciseLog.get(id=id, user=user)
+        exercise_log = await exercise_log_obj.update_from_dict(
+            exercise.model_dump(exclude_none=True)
+        )
+        await exercise_log.save()
+        return exercise_log
+    except DoesNotExist:
+        raise HTTPException(status_code=404, detail="Exercise log not found")
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Failed to update exercise log: {e}"
+        )
+
+
+async def delete_user_exercise_log(id, user) -> None:
+    """
+    Delete an existing exercise log for a user.
+
+    :param id: The ID of the exercise log to delete.
+    :type id: int
+    :param user: The user for whom the exercise log is deleted.
+    :type user: User
+    :raises HTTPException: If there is an error deleting the exercise log.
+    :return: None
+    """
+    try:
+        exercise_log_obj = await ExerciseLog.get(id=id, user=user)
+        await exercise_log_obj.delete()
+    except DoesNotExist:
+        raise HTTPException(status_code=404, detail="Exercise log not found")
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Failed to delete exercise log: {e}"
         )

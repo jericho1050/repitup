@@ -1,7 +1,7 @@
 aerich
 asgi-lifespan==2.*
 fastapi
-fastapi-azure-auth
+fastapi-azure-auth==5.0.0-rc0
 httpx
 pytest
 pytest-asyncio

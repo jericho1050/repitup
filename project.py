@@ -185,9 +185,20 @@ async def delete_workout_plan(request: Request, id: int) -> None:
     dependencies=[Security(azure_scheme)],
 )
 async def get_workout_sessions(request: Request):
+    """
+    Retrieve all workout sessions for the authenticated user.
+
+    Args:
+        request (Request): The incoming request object.
+
+    Returns:
+        WorkoutSession_Pydantic_List: A list of workout sessions for the user.
+
+    Raises:
+        HTTPException: If there is an error retrieving the workout sessions.
+    """
     user = await get_authenticated_user(request)
     return await get_user_workout_sessions(user)
-
 
 @app.get(
     "/workout-session/{id}",
@@ -195,9 +206,21 @@ async def get_workout_sessions(request: Request):
     dependencies=[Security(azure_scheme)],
 )
 async def get_workout_session(request: Request, id: int):
+    """
+    Retrieve a specific workout session for the authenticated user by ID.
+
+    Args:
+        request (Request): The incoming request object.
+        id (int): The ID of the workout session to retrieve.
+
+    Returns:
+        WorkoutSession_Pydantic: The workout session for the user.
+
+    Raises:
+        HTTPException: If there is an error retrieving the workout session.
+    """
     user = await get_authenticated_user(request)
     return await get_user_workout_session(id, user)
-
 
 @app.post(
     "/workout-sessions",
@@ -207,24 +230,68 @@ async def get_workout_session(request: Request, id: int):
 async def create_workout_session(
     request: Request, workout_session: WorkoutSessionCreate
 ):
+    """
+    Create a new workout session for the authenticated user.
+
+    Args:
+        request (Request): The incoming request object.
+        workout_session (WorkoutSessionCreate): The workout session data to create.
+
+    Returns:
+        WorkoutSession_Pydantic: The created workout session.
+
+    Raises:
+        HTTPException: If there is an error creating the workout session.
+    """
     user = await get_authenticated_user(request)
     return await create_user_workout_session(user, workout_session)
-
 
 @app.patch(
     "/workout-session/{id}",
     response_model=WorkoutSession_Pydantic,
     dependencies=[Security(azure_scheme)],
 )
-async def update_workout_session(request: Request, id: int): ...
+async def update_workout_session(
+    request: Request, id: int, workout_session: WorkoutSessionUpdate
+):
+    """
+    Update an existing workout session for the authenticated user.
 
+    Args:
+        request (Request): The incoming request object.
+        id (int): The ID of the workout session to update.
+        workout_session (WorkoutSessionUpdate): The updated workout session data.
+
+    Returns:
+        WorkoutSession_Pydantic: The updated workout session.
+
+    Raises:
+        HTTPException: If there is an error updating the workout session.
+    """
+    user = await get_authenticated_user(request)
+    return await update_user_workout_session(id, user, workout_session)
 
 @app.delete(
     "/workout-session/{id}",
     dependencies=[Security(azure_scheme)],
 )
-async def delete_workout_session(request: Request, id: int) -> None: ...
+async def delete_workout_session(request: Request, id: int) -> None:
+    """
+    Delete an existing workout session for the authenticated user.
 
+    Args:
+        request (Request): The incoming request object.
+        id (int): The ID of the workout session to delete.
+
+    Returns:
+        None
+
+    Raises:
+        HTTPException: If there is an error deleting the workout session.
+    """
+    user = await get_authenticated_user(request)
+    await delete_user_workout_session(id, user)
+    return Response(status_code=204)
 
 if __name__ == "__main__":
     main()
