@@ -1,9 +1,10 @@
 import uvicorn
-from database import TORTOISE_ORM
+from database import TORTOISE_ORM, TORTOISE_ORM_TEST
 from fastapi import FastAPI, HTTPException, Security, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi_azure_auth import B2CMultiTenantAuthorizationCodeBearer, user
 from tortoise.contrib.fastapi import RegisterTortoise
+from tortoise import Tortoise
 from models import *
 from schemas import *
 from settings import settings
@@ -16,20 +17,31 @@ from controllers import *
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """
     Load OpenID config on startup and Registers Tortoise-ORM with set-up and tear-down inside a FastAPI application\'ss lifespan.
-
-
-
     :raises:Any exceptions raised by `azure_scheme.openid_config.load_config()`
     :return: None
+
     """
-    await azure_scheme.openid_config.load_config()
-    async with RegisterTortoise(
-        app,
-        config=TORTOISE_ORM,
-        generate_schemas=True,
-        add_exception_handlers=True,
-    ):
-        yield
+    if getattr(app.state, "testing", False):
+        # If we're in unit tests, create a DB with a dynamic name (the {} placeholder), create schemas and drop
+        # the database when the app's lifespan ends
+        # reference: https://github.com/tortoise/tortoise-orm/issues/1676#issuecomment-2239073869
+        async with RegisterTortoise(
+            app=app,
+            config=TORTOISE_ORM_TEST,
+            generate_schemas=True,
+            add_exception_handlers=True,
+        ):
+            yield
+
+    else:
+        await azure_scheme.openid_config.load_config()
+        async with RegisterTortoise(
+            app,
+            config=TORTOISE_ORM,
+            generate_schemas=True,
+            add_exception_handlers=True,
+        ):
+            yield
 
 
 app = FastAPI(
@@ -200,6 +212,7 @@ async def get_workout_sessions(request: Request):
     user = await get_authenticated_user(request)
     return await get_user_workout_sessions(user)
 
+
 @app.get(
     "/workout-session/{id}",
     response_model=WorkoutSession_Pydantic,
@@ -221,6 +234,7 @@ async def get_workout_session(request: Request, id: int):
     """
     user = await get_authenticated_user(request)
     return await get_user_workout_session(id, user)
+
 
 @app.post(
     "/workout-sessions",
@@ -245,6 +259,7 @@ async def create_workout_session(
     """
     user = await get_authenticated_user(request)
     return await create_user_workout_session(user, workout_session)
+
 
 @app.patch(
     "/workout-session/{id}",
@@ -271,6 +286,7 @@ async def update_workout_session(
     user = await get_authenticated_user(request)
     return await update_user_workout_session(id, user, workout_session)
 
+
 @app.delete(
     "/workout-session/{id}",
     dependencies=[Security(azure_scheme)],
@@ -292,6 +308,58 @@ async def delete_workout_session(request: Request, id: int) -> None:
     user = await get_authenticated_user(request)
     await delete_user_workout_session(id, user)
     return Response(status_code=204)
+
+
+@app.get(
+    "/exercise-logs/workout-session/{id}",
+    response_model=ExerciseLog_Pydantic_List,
+    dependencies=[Security(azure_scheme)],
+)
+async def get_exercise_logs(request: Request, id: int):
+    user = await get_authenticated_user(request)
+    return await get_user_exercise_logs(id, user)
+
+
+@app.get(
+    "/exercise-log/{id}/workout-session",
+    response_model=ExerciseLog_Pydantic,
+    dependencies=[Security(azure_scheme)],
+)
+async def get_exercise_log(request: Request, id: int):
+    user = await get_authenticated_user(request)
+    return await get_user_exercise_log(id, user)
+
+
+@app.post(
+    "/exercise-logs/workout-session/{id}",
+    response_model=ExerciseLog_Pydantic,
+    dependencies=[Security(azure_scheme)],
+)
+async def create_exercise_log(
+    request: Request, id: int, exercise_log: ExerciseLogCreate
+):
+    return await create_user_exercise_log(id, exercise_log)
+
+
+@app.patch(
+    "/exercise-log/{id}/workout-session",
+    response_model=ExerciseLog_Pydantic,
+    dependencies=[Security(azure_scheme)],
+)
+async def update_exercise_log(
+    request: Request, id: int, exercise_log: ExerciseLogUpdate
+):
+    user = await get_authenticated_user(request)
+    return await update_user_exercise_log(id, user, exercise_log)
+
+
+@app.delete("/exercise-log/{id}/workout-session", dependencies=[Security(azure_scheme)])
+async def delete_exercise_log(request: Request, id: int) -> None:
+
+    user = await get_authenticated_user(request)
+    await delete_user_exercise_log(id, user)
+    return Response(status_code=204)
+
 
 if __name__ == "__main__":
     main()

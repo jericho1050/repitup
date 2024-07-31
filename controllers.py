@@ -255,10 +255,10 @@ async def delete_user_workout_session(id: int, user: User) -> None:
         )
 
 
-async def get_user_exercise_logs(user: User) -> ExerciseLog_Pydantic_List:  # type: ignore
+async def get_user_exercise_logs(id: int, user: User) -> list[ExerciseLogBase]:
     """
     Retrieve all exercise logs for a user.
-
+    :param id: The ID of the workout session for which the log belongs or refers
     :param user: The user for whom the exercise logs are retrieved.
     :type user: User
     :raises HTTPException: If there is an error retrieving the exercise logs.
@@ -266,7 +266,9 @@ async def get_user_exercise_logs(user: User) -> ExerciseLog_Pydantic_List:  # ty
     :rtype: []
     """
     try:
-        exercise_logs = await ExerciseLog.filter(user=user)
+        exercise_logs = await ExerciseLog.filter(
+            workout_session__id=id, workout_session__user=user
+        )
         return exercise_logs
     except Exception as e:
         raise HTTPException(
@@ -274,20 +276,18 @@ async def get_user_exercise_logs(user: User) -> ExerciseLog_Pydantic_List:  # ty
         )
 
 
-async def get_user_exercise_log(id: int, user: User) -> ExerciseLog_Pydantic:  # type: ignore
+async def get_user_exercise_log(id: int, user: User) -> ExerciseLogBase:
     """
     Retrieve a specific exercise log for a user by ID.
 
     :param id: The ID of the exercise log to retrieve.
     :type id: int
-    :param user: The user for whom the exercise log is retrieved.
-    :type user: User
     :raises HTTPException: If there is an error retrieving the exercise log.
     :return: The exercise log for the user.
     :rtype: ExerciseLog
     """
     try:
-        exercise_log_obj = await ExerciseLog.get(id=id, user=user)
+        exercise_log_obj = await ExerciseLog.get(id=id, workout_session__user=user)
         return exercise_log_obj
     except DoesNotExist:
         raise HTTPException(status_code=404, detail=f"Exercise Log not found")
@@ -297,10 +297,10 @@ async def get_user_exercise_log(id: int, user: User) -> ExerciseLog_Pydantic:  #
         )
 
 
-async def create_user_exercise_log(user: User, exercise_log: ExerciseLog_Pydantic) -> ExerciseLog_Pydantic:  # type: ignore
+async def create_user_exercise_log(id: int, exercise_log: ExerciseLogCreate) -> ExerciseLogBase:  
     """
     Create a new exercise log for a user.
-
+    :param id: The ID of the workout session for which the log belongs or refers
     :param user: The user for whom the exercise log is created.
     :type user: User
     :param exercise_log: The exercise log data to create.
@@ -311,7 +311,8 @@ async def create_user_exercise_log(user: User, exercise_log: ExerciseLog_Pydanti
     """
     try:
         exercise_log_obj = await ExerciseLog.create(
-            user=user, **exercise_log.model_dump()
+            workout_session_id=id,
+            **exercise_log.model_dump(),
         )
         return exercise_log_obj
     except Exception as e:
@@ -320,7 +321,7 @@ async def create_user_exercise_log(user: User, exercise_log: ExerciseLog_Pydanti
         )
 
 
-async def update_user_exercise_log(id, user, exercise) -> ExerciseLog_Pydantic:  # type: ignore
+async def update_user_exercise_log(id: int, user: User, exercise: ExerciseLogUpdate) -> ExerciseLogBase:  
     """
     Update an existing exercise log for a user.
 
@@ -335,7 +336,7 @@ async def update_user_exercise_log(id, user, exercise) -> ExerciseLog_Pydantic: 
     :rtype: ExerciseLog
     """
     try:
-        exercise_log_obj = await ExerciseLog.get(id=id, user=user)
+        exercise_log_obj = await ExerciseLog.get(id=id, workout_session__user=user)
         exercise_log = await exercise_log_obj.update_from_dict(
             exercise.model_dump(exclude_none=True)
         )
@@ -349,7 +350,7 @@ async def update_user_exercise_log(id, user, exercise) -> ExerciseLog_Pydantic: 
         )
 
 
-async def delete_user_exercise_log(id, user) -> None:
+async def delete_user_exercise_log(id: int, user: User) -> None:
     """
     Delete an existing exercise log for a user.
 
@@ -361,7 +362,7 @@ async def delete_user_exercise_log(id, user) -> None:
     :return: None
     """
     try:
-        exercise_log_obj = await ExerciseLog.get(id=id, user=user)
+        exercise_log_obj = await ExerciseLog.get(id=id, workout_session__user=user)
         await exercise_log_obj.delete()
     except DoesNotExist:
         raise HTTPException(status_code=404, detail="Exercise log not found")

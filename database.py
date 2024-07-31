@@ -21,3 +21,21 @@ TORTOISE_ORM = {
         },
     },
 }
+
+# Tortoise ORM configuration for testing
+TORTOISE_ORM_TEST = {
+    "connections": {
+        "default": get_db_uri(
+            user=os.getenv("USERNAME"),
+            password=os.getenv("PASSWORD"),
+            host=os.getenv("HOST"),
+            db=os.getenv("TEST_DB"),
+        ),
+    },
+    "apps": { 
+        "models": {
+            "models": ["aerich.models", "models"],  # Specify the location of your models
+            "default_connection": "default",
+        },
+    },
+}

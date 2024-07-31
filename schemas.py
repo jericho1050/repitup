@@ -18,8 +18,8 @@ ExerciseLog_Pydantic_List = pydantic_queryset_creator(ExerciseLog)
 ExerciseSummary_Pydantic = pydantic_model_creator(ExerciseSummary)
 ExerciseSummary_Pydantic_List = pydantic_queryset_creator(ExerciseSummary)
 
-ExerciseLog_Pydantic = pydantic_model_creator(Exercise)
-ExerciseLog_Pydantic_List = pydantic_queryset_creator(Exercise)
+Exercise_Pydantic = pydantic_model_creator(Exercise)
+Exercise_Pydantic_List = pydantic_queryset_creator(Exercise)
 
 CalendarEntry_Pydantic = pydantic_model_creator(CalendarEntry)
 
@@ -49,3 +49,20 @@ class WorkoutSessionCreate(BaseModel):
 class WorkoutSessionUpdate(BaseModel):
     date: Optional[datetime] = None
     comments: Optional[str] = None
+
+class ExerciseLogBase(BaseModel):
+    exercise_id: int # required to pass an id in request body to reference which exercise to
+    sets: int
+    reps: int
+    intensity: int
+    exertion_scale: int
+
+class ExerciseLogCreate(ExerciseLogBase):
+    ...
+
+class ExerciseLogUpdate(BaseModel):
+    exercise_id: int  # required to pass an id in request body to reference which exercise to
+    sets: Optional[int] = None
+    reps: Optional[int] = None
+    intensity: Optional[int] = None
+    exertion_scale: Optional[int] = None

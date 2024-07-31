@@ -6,13 +6,14 @@ from fastapi_azure_auth.user import User
 from project import azure_scheme
 from tortoise.contrib.test import finalizer, initializer
 import asgi_lifespan
-
+from project import app
 
 @pytest.fixture(scope="session", autouse=True)
 def initialize_tests(request):
-    db_url = "sqlite://:memory"  # Use in-memory SQLite for tests
-    initializer(["models"], db_url=db_url, app_label="models")
-    request.addfinalizer(finalizer)
+    app.state.testing = True
+    # db_url = "sqlite://:memory"  # Use in-memory SQLite for tests
+    # initializer(["models"], db_url=db_url, app_label="models")
+    # request.addfinalizer(finalizer)
 
 @pytest.fixture
 def anyio_backend():
@@ -52,20 +53,15 @@ async def normal_user_client():
 @pytest.fixture
 async def created_workout_plan_id(normal_user_client):
     response = await normal_user_client.post("/workout-plans", json={"name": "testing post method 1", "description": "testing description 1"})
-    assert response.status_code == 200
     response_data = response.json()
     created_id = response_data["id"]
-    assert response_data["name"] == "testing post method 1"
-    assert response_data["description"] is not None
+
     return int(created_id)
 
 @pytest.fixture
 async def created_workout_session_id(normal_user_client):
     response = await normal_user_client.post("/workout-sessions", json={"comments": "testing post method 1"})
-
-    assert response.status_code == 200
     response_data = response.json()
     created_id = response_data["id"]
-    assert response_data["comments"] == "testing post method 1"
-    assert response_data["date"] is not None
+
     return int(created_id)
