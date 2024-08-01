@@ -43,5 +43,5 @@ jobs:
       - name: Test with pytest
         run: |
           aerich init -t database.TORTOISE_ORM_TEST
-          aerich init-db || echo "Database already initialized, continuing..."
+          aerich init-db
           pytest test_project.py
