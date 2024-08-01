@@ -43,6 +43,4 @@ jobs:
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
       - name: Test with pytest
         run: |
-          aerich init -t database.TORTOISE_ORM_TEST
-          aerich init-db
           pytest test_project.py
