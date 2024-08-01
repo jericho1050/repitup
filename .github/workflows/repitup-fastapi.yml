@@ -24,9 +24,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v3
       - name: Set up Python 3.11.9
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v2
         with:
           python-version: "3.11.9"
       - name: Set enviroment variables
@@ -35,21 +35,15 @@ jobs:
           PASSWORD: ${{ secrets.PASSWORD }}
           HOST: ${{ secrets.HOST }}
           TEST_DB: ${{ secrets.TEST_DB }}
+          DB: ${{ secrets.DB }}
         run: echo "Enviroment Varibles sset"
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install tenacity
           pip install -r requirements.txt
       - name: Test with pytest
         run: |
-          from tenacity import retry, stop_after_attempt
-
-          @retry(stop=stop_after_attempt(3))
-          def run_tests():
-            aerich init -t database.TORTOISE_ORM_TEST
-            aerich init-db
-            pytest test_project.py
-
-          run_tests()
-
+          aerich init -t database.TORTOISE_ORM_TEST
+          aerich init-db
+          pytest test_project.py
+z
