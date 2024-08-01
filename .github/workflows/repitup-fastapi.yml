@@ -30,7 +30,7 @@ jobs:
         env:
           USERNAME: ${{ secrets.USERNAME }}
           PASSWORD: ${{ secrets.PASSWORD }}
-          HOST: ${{ secrets.HOST }}
+          HOST: "localhost"  # Assuming the database is running on localhost
           TEST_DB: ${{ secrets.TEST_DB }}
         run: echo "Environment variables set"
       - name: Install dependencies
