@@ -33,7 +33,7 @@ jobs:
         env:
           USERNAME: ${{ secrets.USERNAME }}
           PASSWORD: ${{ secrets.PASSWORD }}
-          HOST: ${{ secrets.HOST }}
+          HOST: 0.0.0.0
           TEST_DB: ${{ secrets.TEST_DB }}
         run: echo "Enviroment Varibles sset"
       - name: Install dependencies
