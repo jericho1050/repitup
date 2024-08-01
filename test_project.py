@@ -107,7 +107,24 @@ async def test_delete_workout_session(normal_user_client, created_workout_sessio
     assert response_2.status_code == 404
     assert response_3.status_code == 404
 
-        
+@pytest.mark.anyio
+async def test_create_exercise_log(normal_user_client, created_workout_session_id):
+    response_1 = await normal_user_client.post(f"/exercise-log/workout-session/{created_workout_session_id}", json={})
+
+    assert response_1
+@pytest.mark.anyio
+async def test_get_exercise_logs():
+    ...
+@pytest.mark.anyio
+async def test_get_exercise_log():
+    ...
+@pytest.mark.anyio
+async def test_update_exercise_log():
+    ...
+@pytest.mark.anyio
+async def test_delete_exercise_log():
+    ...
+
 
 
 

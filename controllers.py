@@ -370,3 +370,36 @@ async def delete_user_exercise_log(id: int, user: User) -> None:
         raise HTTPException(
             status_code=500, detail=f"Failed to delete exercise log: {e}"
         )
+
+# start TODO
+async def get_user_exercise_summaries(id: int, user: User):
+    ...
+
+async def get_user_exercise_summary(id: int, user: User):
+    ...
+
+async def create_user_exercise_summary(id: int, summary):
+    ...
+
+async def update_user_exercise_summary(id: int, user: User, summary):
+    ...
+
+async def delete_user_exercise_summary(id: int, user: User):
+    ...
+# end
+
+async def get_user_exercises(user: User) -> list[ExerciseBase]:
+    ...
+
+async def get_user_exercise(id: int, user: User) -> ExerciseBase:
+    ...
+
+async def create_user_exercise(id: int, exercise: ExerciseCreate) -> ExerciseBase:
+    ...
+
+async def update_user_exercise(id: int, user: User, exercise: ExerciseUpdate) -> ExerciseBase:
+    ...
+
+async def delete_user_exercise(id: int, user: User):
+    ... 
+    

@@ -66,3 +66,18 @@ class ExerciseLogUpdate(BaseModel):
     reps: Optional[int] = None
     intensity: Optional[int] = None
     exertion_scale: Optional[int] = None
+
+class ExerciseBase(BaseModel):
+    name: str
+    description: str
+    category: str
+    muscle_group: str
+
+class ExerciseCreate(ExerciseBase):
+    ...
+
+class ExerciseUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    category: Optional[str] = None
+    muscle_group: Optional[str] = None

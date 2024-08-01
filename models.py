@@ -32,13 +32,14 @@ class ExerciseLog(models.Model):
 
 
 class ExerciseSummary(models.Model):
-    exercise = fields.ForeignKeyField("models.ExerciseLog")
+    exercise = fields.ForeignKeyField("models.ExerciseLog", on_delete=fields.CASCADE)
     total_sets = fields.IntField(validators=[validate_non_negative])
     total_reps = fields.IntField(validators=[validate_non_negative])
     total_holds = fields.IntField(validators=[validate_non_negative])
 
 
 class Exercise(models.Model):
+    user = fields.ForeignKeyField("models.User", on_delete=fields.CASCADE)
     name = fields.CharField(max_length=MAXLENGTH)
     description = fields.TextField()
     category = fields.CharField(max_length=MAXLENGTH)
