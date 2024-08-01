@@ -10,7 +10,16 @@ permissions:
 
 jobs:
   build:
-
+    # services:
+    #   db:
+    #     image: postgres
+    #     env:
+    #       POSTGRES_USERNAME: ${{ secrets.USERNAME }}
+    #       POSTGRES_PASSWORD: ${{ secrets.PASSWORD }}
+    #       POSTGRES_DB: ${{ secrets.TEST_DB }}
+    #     ports:
+    #       - 5432:5432
+    #     options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
 
     runs-on: ubuntu-latest
 
@@ -32,5 +41,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
       - name: Test with pytest
-        run: 
+        run: |
+          aerich init -t database.TORTOISE_ORM_TEST
+          aerich init-db
           pytest test_project.py
