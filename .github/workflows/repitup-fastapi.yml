@@ -10,16 +10,16 @@ permissions:
 
 jobs:
   build:
-    # services:
-    #   db:
-    #     image: postgres
-    #     env:
-    #       POSTGRES_USERNAME: ${{ secrets.USERNAME }}
-    #       POSTGRES_PASSWORD: ${{ secrets.PASSWORD }}
-    #       POSTGRES_DB: ${{ secrets.TEST_DB }}
-    #     ports:
-    #       - 5432:5432
-    #     options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+    services:
+      db:
+        image: postgres
+        env:
+          POSTGRES_USERNAME: ${{ secrets.USERNAME }}
+          POSTGRES_PASSWORD: ${{ secrets.PASSWORD }}
+          POSTGRES_DB: ${{ secrets.TEST_DB }}
+        ports:
+          - 5432:5432
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
 
     runs-on: ubuntu-latest
 
@@ -40,8 +40,18 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+      - name: Check internet connectivity
+        run: ping -c 4 8.8.8.8
       - name: Test with pytest
         run: |
-          aerich init -t database.TORTOISE_ORM_TEST
-          aerich init-db
-          pytest test_project.py
+          pip install tenacity
+          from tenacity import retry, stop_after_attempt
+
+          @retry(stop=stop_after_attempt(3))
+          def run_tests():
+            aerich init -t database.TORTOISE_ORM_TEST
+            aerich init-db
+            pytest test_project.py
+
+          run_tests()
+

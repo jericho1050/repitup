@@ -5,11 +5,8 @@ from fastapi import Request
 from fastapi_azure_auth.user import User
 from project import azure_scheme
 from tortoise.contrib.test import finalizer, initializer
-from database import TORTOISE_ORM
 import asgi_lifespan
 from project import app
-from aerich import Command
-
 
 @pytest.fixture(scope="session", autouse=True)
 def initialize_tests(request):
@@ -21,12 +18,6 @@ def initialize_tests(request):
 @pytest.fixture
 def anyio_backend():
     return "asyncio"
-
-@pytest.fixture
-async def migrations():
-    command = Command(tortoise_config=TORTOISE_ORM, app='models')
-    await command.init()
-    await command.migrate('test')
 
 @pytest.fixture
 async def normal_user_client():
