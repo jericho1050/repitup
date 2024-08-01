@@ -27,17 +27,15 @@ jobs:
         with:
           python-version: "3.11.9"
       - name: Set environment variables
-        env:
-          USERNAME: ${{ secrets.USERNAME }}
-          PASSWORD: ${{ secrets.PASSWORD }}
-          HOST: "localhost"  # Assuming the database is running on localhost
-          TEST_DB: ${{ secrets.TEST_DB }}
-        run: echo "Environment variables set"
+        run: |
+          echo "USERNAME=${{ secrets.USERNAME }}" >> $GITHUB_ENV
+          echo "PASSWORD=${{ secrets.PASSWORD }}" >> $GITHUB_ENV
+          echo "HOST=127.0.0.1" >> $GITHUB_ENV
+          echo "TEST_DB=${{ secrets.TEST_DB }}" >> $GITHUB_ENV
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install pytest pytest-asyncio anyio
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          pip install -r requirements.txt
       - name: Wait for PostgreSQL to be ready
         run: |
           until pg_isready -h localhost -p 5432; do
