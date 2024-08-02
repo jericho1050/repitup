@@ -34,7 +34,7 @@ async def get_user_workout_plans(user: User) -> list[WorkoutPlanBase]:
     :param user: The user for whom the workout plans are retrieved.
     :return: A list of workout plans in the response model format.
     :raises HTTPException: If there is an error retrieving the workout plans.
-    :rtype: []
+    :rtype: list[]
     """
     try:
         workout_plans = WorkoutPlan.filter(user=user)
@@ -263,7 +263,7 @@ async def get_user_exercise_logs(id: int, user: User) -> list[ExerciseLogBase]:
     :type user: User
     :raises HTTPException: If there is an error retrieving the exercise logs.
     :return: A list of exercise logs for the user.
-    :rtype: []
+    :rtype: list[]
     """
     try:
         exercise_logs = await ExerciseLog.filter(
@@ -297,7 +297,9 @@ async def get_user_exercise_log(id: int, user: User) -> ExerciseLogBase:
         )
 
 
-async def create_user_exercise_log(id: int, exercise_log: ExerciseLogCreate) -> ExerciseLogBase:  
+async def create_user_exercise_log(
+    id: int, exercise_log: ExerciseLogCreate
+) -> ExerciseLogBase:
     """
     Create a new exercise log for a user.
     :param id: The ID of the workout session for which the log belongs or refers
@@ -307,7 +309,7 @@ async def create_user_exercise_log(id: int, exercise_log: ExerciseLogCreate) -> 
     :type exercise_log: ExerciseLog_Pydantic
     :raises HTTPException: If there is an error creating the exercise log.
     :return: The created exercise log.
-    :rtype: ExerciseLog_Pydantic
+    :rtype: ExerciseLog
     """
     try:
         exercise_log_obj = await ExerciseLog.create(
@@ -321,7 +323,9 @@ async def create_user_exercise_log(id: int, exercise_log: ExerciseLogCreate) -> 
         )
 
 
-async def update_user_exercise_log(id: int, user: User, exercise: ExerciseLogUpdate) -> ExerciseLogBase:  
+async def update_user_exercise_log(
+    id: int, user: User, exercise: ExerciseLogUpdate
+) -> ExerciseLogBase:
     """
     Update an existing exercise log for a user.
 
@@ -371,35 +375,129 @@ async def delete_user_exercise_log(id: int, user: User) -> None:
             status_code=500, detail=f"Failed to delete exercise log: {e}"
         )
 
+
 # start TODO
-async def get_user_exercise_summaries(id: int, user: User):
-    ...
+async def get_user_exercise_summaries(id: int, user: User): ...
 
-async def get_user_exercise_summary(id: int, user: User):
-    ...
 
-async def create_user_exercise_summary(id: int, summary):
-    ...
+async def get_user_exercise_summary(id: int, user: User): ...
 
-async def update_user_exercise_summary(id: int, user: User, summary):
-    ...
 
-async def delete_user_exercise_summary(id: int, user: User):
-    ...
+async def create_user_exercise_summary(id: int, summary): ...
+
+
+async def update_user_exercise_summary(id: int, user: User, summary): ...
+
+
+async def delete_user_exercise_summary(id: int, user: User): ...
+
+
 # end
 
+
 async def get_user_exercises(user: User) -> list[ExerciseBase]:
-    ...
+    """
+    Retrieve all exercises for a user.
+
+    :param user: The user whose exercises are to be retrieved.
+    :type user: User
+    :raises HTTPException: If there is an error retrieving the exercises.
+    :return: A list of exercises.
+    :rtype: list[ExerciseBase]
+    """
+    try:
+        exercises = Exercise.filter(user=user)
+        return await Exercise_Pydantic_List.from_queryset(exercises)
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Failed to retrieve exercises: {e}"
+        )
+
 
 async def get_user_exercise(id: int, user: User) -> ExerciseBase:
-    ...
+    """
+    Retrieve a specific exercise for a user.
 
-async def create_user_exercise(id: int, exercise: ExerciseCreate) -> ExerciseBase:
-    ...
+    :param id: The ID of the exercise to retrieve.
+    :type id: int
+    :param user: The user whose exercise is to be retrieved.
+    :type user: User
+    :raises HTTPException: If there is an error retrieving the exercise.
+    :return: The retrieved exercise.
+    :rtype: ExerciseBase
+    """
+    try:
+        exercise_obj = await Exercise.get(id=id, user=user)
+        return exercise_obj
+    except DoesNotExist:
+        raise HTTPException(status_code=404, detail="Exercise not found")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve exercise: {e}")
 
-async def update_user_exercise(id: int, user: User, exercise: ExerciseUpdate) -> ExerciseBase:
-    ...
 
-async def delete_user_exercise(id: int, user: User):
-    ... 
-    
+async def create_user_exercise(user: User, exercise: ExerciseCreate) -> ExerciseBase:
+    """
+    Create a new exercise for a user.
+
+    :param user: The user for whom the exercise is created.
+    :type user: User
+    :param exercise: The exercise data to create.
+    :type exercise: ExerciseCreate
+    :raises HTTPException: If there is an error creating the exercise.
+    :return: The created exercise.
+    :rtype: ExerciseBase
+    """
+    try:
+        exercise_obj = await Exercise.create(user=user, **exercise.model_dump())
+        return exercise_obj
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to create exercise: {e}")
+
+
+async def update_user_exercise(
+    id: int, user: User, exercise: ExerciseUpdate
+) -> ExerciseBase:
+    """
+    Update an existing exercise for a user.
+
+    :param id: The ID of the exercise to update.
+    :type id: int
+    :param user: The user for whom the exercise is updated.
+    :type user: User
+    :param exercise: The updated exercise data.
+    :type exercise: ExerciseUpdate
+    :raises HTTPException: If there is an error updating the exercise.
+    :return: The updated exercise.
+    :rtype: ExerciseBase
+    """
+    try:
+        exercise_obj = await Exercise.get(id=id, user=user)
+        exercise_ = await exercise_obj.update_from_dict(
+            exercise.model_dump(exclude_none=True)
+        )
+        await exercise_.save()
+        return exercise_
+    except DoesNotExist:
+        raise HTTPException(status_code=404, detail="Exercise not found")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to update exercise: {e}")
+
+
+async def delete_user_exercise(id: int, user: User) -> None:
+    """
+    Delete an existing exercise for a user.
+
+    :param id: The ID of the exercise to delete.
+    :type id: int
+    :param user: The user for whom the exercise is deleted.
+    :type user: User
+    :raises HTTPException: If there is an error deleting the exercise.
+    :return: None
+    """
+    try:
+        exercise_obj = await Exercise.get(id=id, user=user)
+        await exercise_obj.delete()
+    except DoesNotExist:
+        raise HTTPException(status_code=404, detail="Exercise not found")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to delete exercise: {e}")

@@ -316,6 +316,19 @@ async def delete_workout_session(request: Request, id: int) -> None:
     dependencies=[Security(azure_scheme)],
 )
 async def get_exercise_logs(request: Request, id: int):
+    """
+    Retrieve all exercise logs for a specific workout session for the authenticated user.
+
+    Args:
+        request (Request): The incoming request object.
+        id (int): The ID of the workout session.
+
+    Returns:
+        ExerciseLog_Pydantic_List: A list of exercise logs for the workout session.
+
+    Raises:
+        HTTPException: If there is an error retrieving the exercise logs.
+    """
     user = await get_authenticated_user(request)
     return await get_user_exercise_logs(id, user)
 
@@ -326,6 +339,19 @@ async def get_exercise_logs(request: Request, id: int):
     dependencies=[Security(azure_scheme)],
 )
 async def get_exercise_log(request: Request, id: int):
+    """
+    Retrieve a specific exercise log for the authenticated user.
+
+    Args:
+        request (Request): The incoming request object.
+        id (int): The ID of the exercise log to retrieve.
+
+    Returns:
+        ExerciseLog_Pydantic: The retrieved exercise log.
+
+    Raises:
+        HTTPException: If there is an error retrieving the exercise log.
+    """
     user = await get_authenticated_user(request)
     return await get_user_exercise_log(id, user)
 
@@ -338,6 +364,20 @@ async def get_exercise_log(request: Request, id: int):
 async def create_exercise_log(
     request: Request, id: int, exercise_log: ExerciseLogCreate
 ):
+    """
+    Create a new exercise log for a specific workout session for the authenticated user.
+
+    Args:
+        request (Request): The incoming request object.
+        id (int): The ID of the workout session.
+        exercise_log (ExerciseLogCreate): The exercise log data to create.
+
+    Returns:
+        ExerciseLog_Pydantic: The created exercise log.
+
+    Raises:
+        HTTPException: If there is an error creating the exercise log.
+    """
     return await create_user_exercise_log(id, exercise_log)
 
 
@@ -349,15 +389,154 @@ async def create_exercise_log(
 async def update_exercise_log(
     request: Request, id: int, exercise_log: ExerciseLogUpdate
 ):
+    """
+    Update an existing exercise log for the authenticated user.
+
+    Args:
+        request (Request): The incoming request object.
+        id (int): The ID of the exercise log to update.
+        exercise_log (ExerciseLogUpdate): The updated exercise log data.
+
+    Returns:
+        ExerciseLog_Pydantic: The updated exercise log.
+
+    Raises:
+        HTTPException: If there is an error updating the exercise log.
+    """
     user = await get_authenticated_user(request)
     return await update_user_exercise_log(id, user, exercise_log)
 
 
 @app.delete("/exercise-log/{id}/workout-session", dependencies=[Security(azure_scheme)])
 async def delete_exercise_log(request: Request, id: int) -> None:
+    """
+    Delete an existing exercise log for the authenticated user.
+
+    Args:
+        request (Request): The incoming request object.
+        id (int): The ID of the exercise log to delete.
+
+    Returns:
+        None
+
+    Raises:
+        HTTPException: If there is an error deleting the exercise log.
+    """
 
     user = await get_authenticated_user(request)
     await delete_user_exercise_log(id, user)
+    return Response(status_code=204)
+
+
+@app.get(
+    "/exercises",
+    response_model=Exercise_Pydantic_List,
+    dependencies=[Security(azure_scheme)],
+)
+async def get_exercises(request: Request):
+    """
+    Retrieve all exercises for the authenticated user.
+
+    Args:
+        request (Request): The incoming request object.
+
+    Returns:
+        Exercise_Pydantic_List: A list of exercises for the authenticated user.
+
+    Raises:
+        HTTPException: If there is an error retrieving the exercises.
+    """
+    user = await get_authenticated_user(request)
+    return await get_user_exercises(user)
+
+
+@app.get(
+    "/exercise/{id}",
+    response_model=Exercise_Pydantic,
+    dependencies=[Security(azure_scheme)],
+)
+async def get_exercise(request: Request, id: int):
+    """
+    Retrieve a specific exercise for the authenticated user.
+
+    Args:
+        request (Request): The incoming request object.
+        id (int): The ID of the exercise to retrieve.
+
+    Returns:
+        Exercise_Pydantic: The retrieved exercise.
+
+    Raises:
+        HTTPException: If there is an error retrieving the exercise.
+    """
+    user = await get_authenticated_user(request)
+    return await get_user_exercise(id, user)
+
+
+@app.post(
+    "/exercises",
+    response_model=Exercise_Pydantic,
+    dependencies=[Security(azure_scheme)],
+)
+async def create_exercise(request: Request, exercise: ExerciseCreate):
+    """
+    Create a new exercise for the authenticated user.
+
+    Args:
+        request (Request): The incoming request object.
+        exercise (ExerciseCreate): The exercise data to create.
+
+    Returns:
+        Exercise_Pydantic: The created exercise.
+
+    Raises:
+        HTTPException: If there is an error creating the exercise.
+    """
+    user = await get_authenticated_user(request)
+    return await create_user_exercise(user, exercise)
+
+
+@app.patch(
+    "/exercise/{id}",
+    response_model=Exercise_Pydantic,
+    dependencies=[Security(azure_scheme)],
+)
+async def update_exercise(request: Request, id: int, exercise: ExerciseUpdate):
+    """
+    Update an existing exercise for the authenticated user.
+
+    Args:
+        request (Request): The incoming request object.
+        id (int): The ID of the exercise to update.
+        exercise (ExerciseUpdate): The updated exercise data.
+
+    Returns:
+        Exercise_Pydantic: The updated exercise.
+
+    Raises:
+        HTTPException: If there is an error updating the exercise.
+    """
+    user = await get_authenticated_user(request)
+    return await update_user_exercise(id, user, exercise)
+
+
+@app.delete("/exercise/{id}", dependencies=[Security(azure_scheme)])
+async def delete_exercise(request: Request, id: int):
+    """
+    Delete an existing exercise for the authenticated user.
+
+    Args:
+        request (Request): The incoming request object.
+        id (int): The ID of the exercise to delete.
+
+    Returns:
+        None
+
+    Raises:
+        HTTPException: If there is an error deleting the exercise.
+    """
+    user = await get_authenticated_user(request)
+    await delete_user_exercise(id, user)
     return Response(status_code=204)
 
 

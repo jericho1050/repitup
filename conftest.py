@@ -8,6 +8,7 @@ from tortoise.contrib.test import finalizer, initializer
 import asgi_lifespan
 from project import app
 
+
 @pytest.fixture(scope="session", autouse=True)
 def initialize_tests(request):
     app.state.testing = True
@@ -15,9 +16,11 @@ def initialize_tests(request):
     # initializer(["models"], db_url=db_url, app_label="models")
     # request.addfinalizer(finalizer)
 
+
 @pytest.fixture
 def anyio_backend():
     return "asyncio"
+
 
 @pytest.fixture
 async def normal_user_client():
@@ -50,26 +53,62 @@ async def normal_user_client():
         async with AsyncClient(transport=transport, base_url="http://test") as ac:
             yield ac
 
+
 @pytest.fixture
 async def created_workout_plan_id(normal_user_client):
-    response = await normal_user_client.post("/workout-plans", json={"name": "testing post method 1", "description": "testing description 1"})
+    response = await normal_user_client.post(
+        "/workout-plans",
+        json={"name": "testing post method 1", "description": "testing description 1"},
+    )
     response_data = response.json()
     created_id = response_data["id"]
 
     return int(created_id)
+
 
 @pytest.fixture
 async def created_workout_session_id(normal_user_client):
-    response = await normal_user_client.post("/workout-sessions", json={"comments": "testing post method 1"})
+    response = await normal_user_client.post(
+        "/workout-sessions", json={"comments": "testing post method 1"}
+    )
+    response_data = response.json()
+    created_id = response_data["id"]
+    return int(created_id)
+
+
+@pytest.fixture
+async def created_exercise_id(normal_user_client):
+    response = await normal_user_client.post(
+        f"/exercises",
+        json={
+            "name": "testing post method 1",
+            "description": "testing description 1",
+            "category": "testing category 1",
+            "muscle_group": "testing muscle group 1",
+        },
+    )
     response_data = response.json()
     created_id = response_data["id"]
 
     return int(created_id)
 
+
 @pytest.fixture
-async def created_exericse_log_id(normal_user_client, created_workout_session_id):
-    response = await normal_user_client.post(f"/exercise-logs/workout-session/{created_workout_session_id}")
+async def created_exericse_log_id(
+    normal_user_client, created_workout_session_id, created_exercise_id
+):
+    response = await normal_user_client.post(
+        f"/exercise-logs/workout-session/{created_workout_session_id}",
+        json={
+            "exercise_id": created_exercise_id,
+            "sets": 1,
+            "reps": 1,
+            "intensity": 70,
+            "exertion_scale": 9,
+        },
+    )
+
     response_data = response.json()
     created_id = response_data["id"]
-    
+
     return int(created_id)

@@ -61,7 +61,7 @@ class ExerciseLogCreate(ExerciseLogBase):
     ...
 
 class ExerciseLogUpdate(BaseModel):
-    exercise_id: int  # required to pass an id in request body to reference which exercise to
+    exercise_id: Optional[int] = None  # required to pass an id in request body to reference which exercise to
     sets: Optional[int] = None
     reps: Optional[int] = None
     intensity: Optional[int] = None
