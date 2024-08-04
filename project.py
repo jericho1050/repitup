@@ -378,7 +378,8 @@ async def create_exercise_log(
     Raises:
         HTTPException: If there is an error creating the exercise log.
     """
-    return await create_user_exercise_log(id, exercise_log)
+    user = await get_authenticated_user(request)
+    return await create_user_exercise_log(id, user, exercise_log)
 
 
 @app.patch(
@@ -521,7 +522,7 @@ async def update_exercise(request: Request, id: int, exercise: ExerciseUpdate):
 
 
 @app.delete("/exercise/{id}", dependencies=[Security(azure_scheme)])
-async def delete_exercise(request: Request, id: int):
+async def delete_exercise(request: Request, id: int) -> None:
     """
     Delete an existing exercise for the authenticated user.
 
@@ -538,6 +539,84 @@ async def delete_exercise(request: Request, id: int):
     user = await get_authenticated_user(request)
     await delete_user_exercise(id, user)
     return Response(status_code=204)
+
+
+@app.get(
+    "/exercise-summary/exercise-log/{id}",
+    response_model=ExerciseSummary_Pydantic,
+    dependencies=[Security(azure_scheme)],
+)
+async def get_exercise_summary(request: Request, id: int):
+    """
+    Get the exercise summary for a specific exercise log for the authenticated user.
+
+    Args:
+        request (Request): The incoming request object.
+        id (int): The ID of the exercise log to retrieve the summary for.
+
+    Returns:
+        ExerciseSummary_Pydantic: The summary of the exercise log.
+
+    Raises:
+        HTTPException: If there is an error retrieving the exercise summary.
+    """
+    user = await get_authenticated_user(request)
+    return await get_user_exercise_summary(id, user)
+
+
+@app.post(
+    "/exercise-summary/exercise-log/{id}",
+    response_model=ExerciseSummary_Pydantic,
+    dependencies=[Security(azure_scheme)],
+)
+async def create_exercise_summary(request: Request, id: int):
+    """
+    Create a new exercise summary for a specific exercise log for the authenticated user.
+
+    Args:
+        request (Request): The incoming request object.
+        id (int): The ID of the exercise log to create the summary for.
+
+    Returns:
+        ExerciseSummary_Pydantic: The created summary of the exercise log.
+
+    Raises:
+        HTTPException: If there is an error creating the exercise summary.
+    """
+    user = await get_authenticated_user(request)
+    return await create_exercise_summary(id, user)
+
+
+@app.patch(
+    "/exercise-summary/{id}/exercise-log",
+    response_model=ExerciseSummary_Pydantic,
+    dependencies=[Security(azure_scheme)],
+)
+async def update_exercise_summary(request: Request, id: int):
+    """
+    Update the exercise summary for a specific exercise log for the authenticated user.
+
+    Args:
+        request (Request): The incoming request object.
+        id (int): The ID of the exercise log to update the summary for.
+
+    Returns:
+        ExerciseSummary_Pydantic: The updated summary of the exercise log.
+
+    Raises:
+        HTTPException: If there is an error updating the exercise summary.
+    """
+    user = await get_authenticated_user(request)
+    return await update_user_exercise_summary(id, user)
+
+
+@app.delete(
+    "/exercise-summary/{id}/exercise-log", dependencies=[Security(azure_scheme)]
+)
+async def delete_exercise_summary(request: Request, id: int):
+
+    user = await get_authenticated_user(request)
+    return await delete_user_exercise_summary(id, user)
 
 
 if __name__ == "__main__":

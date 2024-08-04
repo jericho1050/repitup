@@ -57,7 +57,7 @@ async def test_update_workout_plan(normal_user_client, created_workout_plan_id):
     response_2 = await normal_user_client.get(
         f"/workout-plan/{created_workout_plan_id}"
     )
-    response_3 = await normal_user_client.get(f"/workout-plan/321")
+    response_3 = await normal_user_client.get(f"/workout-plan/032169")
 
     assert response_1.status_code == 200
     assert response_2.status_code == 200

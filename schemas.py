@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Optional
 from tortoise.contrib.pydantic import pydantic_model_creator, pydantic_queryset_creator
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from models import *
 
 User_Pydantic = pydantic_model_creator(User)
@@ -38,34 +38,52 @@ class WorkoutPlanUpdate(BaseModel):
 
 
 class WorkoutSessionBase(BaseModel):
-    date: datetime
+    date: Optional[datetime] = None
     comments: str
 
+    # @field_validator('date', mode='before')
+    # def parse_date(cls, value):
+    #     if value is None:
+    #         return value
+    #     if isinstance(value, str):
+    #         try:
+    #             return datetime.strptime(value, '%Y/%m/%d')
+    #         except ValueError:
+    #             raise ValueError("Date must be in the format 'yyyy/mm/dd'")
+    #     return value
 
-class WorkoutSessionCreate(BaseModel):
-    comments: str
+
+class WorkoutSessionCreate(WorkoutSessionBase): ...
 
 
 class WorkoutSessionUpdate(BaseModel):
     date: Optional[datetime] = None
     comments: Optional[str] = None
 
+
 class ExerciseLogBase(BaseModel):
-    exercise_id: int # required to pass an id in request body to reference which exercise to
+    exercise_id: (
+        int  # required to pass an id in request body to reference which exercise to
+    )
+
     sets: int
     reps: int
     intensity: int
     exertion_scale: int
 
-class ExerciseLogCreate(ExerciseLogBase):
-    ...
+
+class ExerciseLogCreate(ExerciseLogBase): ...
+
 
 class ExerciseLogUpdate(BaseModel):
-    exercise_id: Optional[int] = None  # required to pass an id in request body to reference which exercise to
+    exercise_id: Optional[int] = (
+        None  # required to pass an id in request body to reference which exercise to
+    )
     sets: Optional[int] = None
     reps: Optional[int] = None
     intensity: Optional[int] = None
     exertion_scale: Optional[int] = None
+
 
 class ExerciseBase(BaseModel):
     name: str
@@ -73,11 +91,27 @@ class ExerciseBase(BaseModel):
     category: str
     muscle_group: str
 
-class ExerciseCreate(ExerciseBase):
-    ...
+
+class ExerciseCreate(ExerciseBase): ...
+
 
 class ExerciseUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
     category: Optional[str] = None
     muscle_group: Optional[str] = None
+
+
+class ExerciseSummaryBase(BaseModel):
+    total_sets: int
+    total_reps: int
+    total_iso_hold: int
+
+
+class ExerciseSummaryCreate(ExerciseSummaryBase): ...
+
+
+class ExerciseSummaryUpdate(BaseModel):
+    total_sets: Optional[int] = None
+    total_reps: Optional[int] = None
+    total_iso_hold: Optional[int] = None
