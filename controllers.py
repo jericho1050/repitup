@@ -1,9 +1,8 @@
-from typing import Coroutine
 from fastapi import Request, HTTPException
 from models import *
 from schemas import *
-
-
+from datetime import datetime, timedelta
+from helpers import get_weeks_in_month
 from tortoise.exceptions import DoesNotExist
 
 
@@ -193,7 +192,7 @@ async def create_user_workout_session(
     """
     try:
         workout_session_obj = await WorkoutSession.create(
-            user=user, **workout_session.model_dump()
+            user=user, **workout_session.model_dump(exclude_none=True)
         )
         return workout_session_obj
     except Exception as e:
@@ -298,7 +297,7 @@ async def get_user_exercise_log(id: int, user: User) -> ExerciseLogBase:
 
 
 async def create_user_exercise_log(
-    id: int, exercise_log: ExerciseLogCreate
+    id: int, user: User, exercise_log: ExerciseLogCreate
 ) -> ExerciseLogBase:
     """
     Create a new exercise log for a user.
@@ -312,11 +311,29 @@ async def create_user_exercise_log(
     :rtype: ExerciseLog
     """
     try:
+        # Create the exercise log
         exercise_log_obj = await ExerciseLog.create(
             workout_session_id=id,
             **exercise_log.model_dump(),
         )
+        # Retrieve or create the exercise summary
+        exercise_summary_obj, created = await ExerciseSummary.get_or_create(
+            exercise_log=exercise_log_obj,
+            defaults={
+                "total_sets": exercise_log.sets,
+                "total_reps": exercise_log.reps,
+                "total_holds": exercise_log.reps,
+            },
+        )
+
+        if not created:
+            # update the existing summary
+            exercise_summary_obj.sets += exercise_log.sets
+            exercise_summary_obj.reps += exercise_log.reps
+            await exercise_summary_obj.save()
+
         return exercise_log_obj
+
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Failed to create exercise log: {e}"
@@ -376,23 +393,111 @@ async def delete_user_exercise_log(id: int, user: User) -> None:
         )
 
 
-# start TODO
-async def get_user_exercise_summaries(id: int, user: User): ...
+async def get_user_exercise_summary(id: int, user: User) -> ExerciseSummaryBase:
+    """
+    Retrieve a specific exercise summary for a user's exercise log.
+
+    :param id: The ID of the exercise log.
+    :type id: int
+    :param user: The user for whom the exercise summary is retrieved.
+    :type user: User
+    :raises HTTPException: If the exercise summary does not exist or there is an error retrieving it.
+    :return: The exercise summary.
+    :rtype: ExerciseSummary
+    """
+    try:
+        exercise_summary_obj = await ExerciseSummary.get(
+            exercise_log_id=id, exercise_log__workout_session__user=user
+        )
+        return exercise_summary_obj
+    except DoesNotExist:
+        raise HTTPException(
+            status_code=404, details=f"Failed to retrieve exercise summary: {e}"
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Failed to retrieve exercise summary: {e}"
+        )
 
 
-async def get_user_exercise_summary(id: int, user: User): ...
+async def create_user_exercise_summary(
+    id: int, summary: ExerciseSummaryCreate
+) -> ExerciseSummaryCreate:
+    """
+    Create a new exercise summary for a user's exercise log.
+
+    :param id: The ID of the exercise log.
+    :type id: int
+    :param summary: The exercise summary data to be created.
+    :type summary: ExerciseSummaryCreate
+    :raises HTTPException: If there is an error creating the exercise summary.
+    :return: The created exercise summary.
+    :rtype: ExerciseSummary
+    """
+    try:
+        exercise_summary_obj = await ExerciseSummary.create(
+            exercise_log_id=id, **summary.model_dump()
+        )
+        return exercise_summary_obj
+    except Exception as e:
+        raise HTTPException(
+            status_code=404, detail=f"Failed to create exercise summary: {e}"
+        )
 
 
-async def create_user_exercise_summary(id: int, summary): ...
+async def update_user_exercise_summary(
+    id: int, user: User, summary: ExerciseSummaryUpdate
+) -> ExerciseSummaryUpdate:
+    """
+    Update an existing exercise summary for a user's exercise log.
+
+    :param id: The ID of the exercise summary to update.
+    :type id: int
+    :param user: The user who owns the exercise log.
+    :type user: User
+    :param summary: The updated exercise summary data.
+    :type summary: ExerciseSummaryUpdate
+    :raises HTTPException: If the exercise summary is not found or there is an error updating it.
+    :return: The updated exercise summary.
+    :rtype: ExerciseSummary
+    """
+    try:
+        exercise_summary_obj = await ExerciseSummary.get(
+            id=id, exercise_log__workout_session__user=user
+        )
+        exercise_summary = await exercise_summary_obj.update_from_dict(
+            summary.model_dump(exclude_none=True)
+        )
+        await exercise_summary.save()
+        return exercise_summary
+    except DoesNotExist:
+        raise HTTPException(status_code=404, detail=f"Exercise summary not found")
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Failed to update exercise summary: {e}"
+        )
 
 
-async def update_user_exercise_summary(id: int, user: User, summary): ...
+async def delete_user_exercise_summary(id: int, user: User) -> None:
+    """
+    Delete an existing exercise summary for a user's exercise log.
 
-
-async def delete_user_exercise_summary(id: int, user: User): ...
-
-
-# end
+    :param id: The ID of the exercise summary to delete.
+    :type id: int
+    :param user: The user who owns the exercise log.
+    :type user: User
+    :raises HTTPException: If the exercise summary is not found or there is an error deleting it.
+    :return: None
+    """
+    try:
+        exercise_summary_obj = await ExerciseSummary.get(id=id, user=user)
+        await exercise_summary_obj.delete()
+    except DoesNotExist:
+        raise HTTPException(status_code=404, detail=f"Exercise summary not found")
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Failed to delete exercise summary: {e}"
+        )
 
 
 async def get_user_exercises(user: User) -> list[ExerciseBase]:
@@ -501,3 +606,74 @@ async def delete_user_exercise(id: int, user: User) -> None:
         raise HTTPException(status_code=404, detail="Exercise not found")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to delete exercise: {e}")
+
+
+async def get_weekly_exercise_summary(user: User, week_start: datetime) -> dict:
+    """
+    Get the exercise summary for a user for the entire week.
+
+    :param user: The user for whom the exercise summary is calculated.
+    :type user: User
+    :param week_start: The start date of the week.
+    :type week_start: datetime
+    :return: A dictionary containing the total sets and reps for the week.
+    :rtype: dict
+    """
+    try:
+        # Calculate the end date of the week
+        week_end = week_start + timedelta(days=7)
+
+        # Fetch all exercise logs for the user within the week
+        exercise_logs = await ExerciseLog.filter(
+            workout_session__user=user,
+            workout_session__date__gte=week_start,
+            workout_session__date__lt=week_end,
+        )
+
+        # Aggregate the sets and reps
+        total_sets = sum(log.sets for log in exercise_logs)
+        total_reps = sum(log.reps for log in exercise_logs)
+        total_holds = sum(log.reps for log in exercise_logs)
+
+        return {
+            "total_sets": total_sets,
+            "total_reps": total_reps,
+            "total_holds": total_holds,
+        }
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Failed to calculate weekly exercise summary: {e}"
+        )
+
+
+async def get_monthly_exercise_summary(user: User, year: int, month: int) -> list:
+    """
+    Get the exercise summary for a user for each week in a given month.
+
+    :param user: The user for whom the exercise summary is calculated.
+    :type user: User
+    :param year: The year of the month.
+    :type year: int
+    :param month: The month for which to get the exercise summary.
+    :type month: int
+    :return: A list of dictionaries containing the total sets and reps for each week.
+    :rtype: list
+    """
+    try:
+        weeks = get_weeks_in_month(year, month)
+        weekly_summaries = [
+            {
+                "week_start": week_start,
+                "week_end": week_end,
+                "summary": await get_weekly_exercise_summary(user, week_start),
+            }
+            for week_start, week_end in weeks
+        ]
+
+        return weekly_summaries
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Failed to calculate monthly exercise summary: {e}"
+        )

@@ -18,7 +18,7 @@ class WorkoutPlan(models.Model):
 
 class WorkoutSession(models.Model):
     user = fields.ForeignKeyField("models.User", on_delete=fields.CASCADE)
-    date = fields.DatetimeField(auto_now=True)
+    date = fields.DatetimeField(auto_now_add=True)
     comments = fields.TextField()
 
 
@@ -32,7 +32,7 @@ class ExerciseLog(models.Model):
 
 
 class ExerciseSummary(models.Model):
-    exercise = fields.ForeignKeyField("models.ExerciseLog", on_delete=fields.CASCADE)
+    exercise_log = fields.ForeignKeyField("models.ExerciseLog", on_delete=fields.CASCADE)
     total_sets = fields.IntField(validators=[validate_non_negative])
     total_reps = fields.IntField(validators=[validate_non_negative])
     total_holds = fields.IntField(validators=[validate_non_negative])
