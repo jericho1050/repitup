@@ -407,9 +407,9 @@ async def get_user_exercise_summary(id: int, user: User) -> ExerciseSummaryBase:
             exercise_log_id=id, exercise_log__workout_session__user=user
         )
         return exercise_summary_obj
-    except DoesNotExist:
+    except DoesNotExist as e:
         raise HTTPException(
-            status_code=404, details=f"Failed to retrieve exercise summary: {e}"
+            status_code=404, detail=f"Failed to retrieve exercise summary: {e}"
         )
     except Exception as e:
         raise HTTPException(
@@ -432,13 +432,21 @@ async def create_user_exercise_summary(
     :rtype: ExerciseSummary
     """
     try:
+        # Check if an exercise summary already exists for the given exercise log ID
+        existing_summary = await ExerciseSummary.filter(exercise_log_id=id).first()
+        if existing_summary:
+            raise HTTPException(
+                status_code=400,
+                detail="Exercise summary already exists for this exercise log.",
+            )
         exercise_summary_obj = await ExerciseSummary.create(
             exercise_log_id=id, **summary.model_dump()
         )
         return exercise_summary_obj
+    
     except Exception as e:
         raise HTTPException(
-            status_code=404, detail=f"Failed to create exercise summary: {e}"
+            status_code=500, detail=f"Failed to create exercise summary: {e}"
         )
 
 
