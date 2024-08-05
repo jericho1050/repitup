@@ -10,14 +10,11 @@ async def get_authenticated_user(request: Request) -> User:
     """
     Extract and validate the authenticated user from the request.
 
-    Args:
-        request (Request): The incoming request object.
-
-    Returns:
-        User: The authenticated user object.
-
-    Raises:
-        HTTPException: If the user is unauthorized.
+    :param request: The incoming request object.
+    :type request: Request
+    :return: The authenticated user object.
+    :rtype: User
+    :raises HTTPException: If the user is unauthorized.
     """
     user_dict = request.state.user.model_dump()
     if not user_dict:
@@ -490,7 +487,9 @@ async def delete_user_exercise_summary(id: int, user: User) -> None:
     :return: None
     """
     try:
-        exercise_summary_obj = await ExerciseSummary.get(id=id, user=user)
+        exercise_summary_obj = await ExerciseSummary.get(
+            id=id, exercise_log__workout_session__user=user
+        )
         await exercise_summary_obj.delete()
     except DoesNotExist:
         raise HTTPException(status_code=404, detail=f"Exercise summary not found")
@@ -622,7 +621,6 @@ async def get_weekly_exercise_summary(user: User, week_start: datetime) -> dict:
     try:
         # Calculate the end date of the week
         week_end = week_start + timedelta(days=7)
-
         # Fetch all exercise logs for the user within the week
         exercise_logs = await ExerciseLog.filter(
             workout_session__user=user,

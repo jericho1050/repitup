@@ -196,10 +196,10 @@ async def test_get_exercise_logs(normal_user_client, created_workout_session_id)
 
 
 @pytest.mark.anyio
-async def test_get_exercise_log(normal_user_client, created_exericse_log_id):
+async def test_get_exercise_log(normal_user_client, created_exercise_log_id):
 
     response_1 = await normal_user_client.get(
-        f"/exercise-log/{created_exericse_log_id}/workout-session"
+        f"/exercise-log/{created_exercise_log_id}/workout-session"
     )
     response_2 = await normal_user_client.get("/exercise-log/123")
 
@@ -208,13 +208,13 @@ async def test_get_exercise_log(normal_user_client, created_exericse_log_id):
 
 
 @pytest.mark.anyio
-async def test_update_exercise_log(normal_user_client, created_exericse_log_id):
+async def test_update_exercise_log(normal_user_client, created_exercise_log_id):
     response_1 = await normal_user_client.patch(
-        f"/exercise-log/{created_exericse_log_id}/workout-session",
+        f"/exercise-log/{created_exercise_log_id}/workout-session",
         json={"sets": 1, "reps": 1, "intensity": 60, "exertion_scale": 7},
     )
     response_2 = await normal_user_client.patch(
-        f"/exercise-log/{created_exericse_log_id}/workout-session",
+        f"/exercise-log/{created_exercise_log_id}/workout-session",
         json={"sets": 1, "reps": 1, "weight": 69},
     )  # it's stilll 200 even though there some wrong field inputted in the body
     response_3 = await normal_user_client.patch(
@@ -227,12 +227,38 @@ async def test_update_exercise_log(normal_user_client, created_exericse_log_id):
 
 
 @pytest.mark.anyio
-async def test_delete_exercise_log(normal_user_client, created_exericse_log_id):
+async def test_delete_exercise_log(normal_user_client, created_exercise_log_id):
     response_1 = await normal_user_client.delete(
-        f"/exercise-log/{created_exericse_log_id}/workout-session"
+        f"/exercise-log/{created_exercise_log_id}/workout-session"
     )
     response_2 = await normal_user_client.delete(
         "/exercise-log/1233212312312/workout-session"
     )
     assert response_1.status_code == 204
     assert response_2.status_code == 404
+
+
+# TODO test exercise summary
+@pytest.mark.anyio
+async def test_create_exercise_summary(normal_user_client, created_exercise_log_id):
+    print("does thgis mtkfiung exist", created_exercise_log_id)
+    response_1 = await normal_user_client.post(f"/exercise-summary/exercise-log/{created_exercise_log_id}")
+
+    assert response_1.status_code == 200
+
+@pytest.mark.anyio
+async def test_get_exercise_summary(normal_user_client, created_exercise_log_id):
+    ...
+
+@pytest.mark.anyio
+async def test_update_exercise_summary(normal_user_client):
+    ...
+
+@pytest.mark.anyio
+async def test_delete_exercise_summary(normal_user_client):
+    ...
+
+@pytest.mark.anyio
+async def test_get_current_month_exercise_summaries(normal_user_client):
+    ...
+

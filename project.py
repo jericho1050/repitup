@@ -1,5 +1,6 @@
 import uvicorn
 from database import TORTOISE_ORM, TORTOISE_ORM_TEST
+from datetime import datetime
 from fastapi import FastAPI, HTTPException, Security, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi_azure_auth import B2CMultiTenantAuthorizationCodeBearer, user
@@ -569,7 +570,7 @@ async def get_exercise_summary(request: Request, id: int):
     response_model=ExerciseSummary_Pydantic,
     dependencies=[Security(azure_scheme)],
 )
-async def create_exercise_summary(request: Request, id: int):
+async def create_exercise_summary(id: int, exercise_summary: ExerciseSummaryCreate):
     """
     Create a new exercise summary for a specific exercise log for the authenticated user.
 
@@ -583,8 +584,8 @@ async def create_exercise_summary(request: Request, id: int):
     Raises:
         HTTPException: If there is an error creating the exercise summary.
     """
-    user = await get_authenticated_user(request)
-    return await create_exercise_summary(id, user)
+
+    return await create_user_exercise_summary(id, exercise_summary)
 
 
 @app.patch(
@@ -592,13 +593,14 @@ async def create_exercise_summary(request: Request, id: int):
     response_model=ExerciseSummary_Pydantic,
     dependencies=[Security(azure_scheme)],
 )
-async def update_exercise_summary(request: Request, id: int):
+async def update_exercise_summary(request: Request,id: int, exercise_summary: ExerciseSummaryUpdate):
     """
     Update the exercise summary for a specific exercise log for the authenticated user.
 
     Args:
         request (Request): The incoming request object.
         id (int): The ID of the exercise log to update the summary for.
+        exercise_summary (ExerciseSummaryCreate): The exercise summary to create
 
     Returns:
         ExerciseSummary_Pydantic: The updated summary of the exercise log.
@@ -607,16 +609,41 @@ async def update_exercise_summary(request: Request, id: int):
         HTTPException: If there is an error updating the exercise summary.
     """
     user = await get_authenticated_user(request)
-    return await update_user_exercise_summary(id, user)
+    return await update_user_exercise_summary(id, user, exercise_summary)
 
 
 @app.delete(
     "/exercise-summary/{id}/exercise-log", dependencies=[Security(azure_scheme)]
 )
-async def delete_exercise_summary(request: Request, id: int):
+async def delete_exercise_summary(request: Request, id: int) -> None:
 
     user = await get_authenticated_user(request)
-    return await delete_user_exercise_summary(id, user)
+    await delete_user_exercise_summary(id, user)
+    return Response(status_code=204)
+
+
+@app.get(
+    "/exercise-summary/{year}/{month}",
+    response_model=list[WeeklySummary_Pydantic],
+    dependencies=[Security(azure_scheme)],
+)
+async def get_specific_month_summary(request: Request, year: int, month: int):
+    """
+    Get the exercise summary for each week in a specific month and year for the authenticated user.
+
+    Args:
+        request (Request): The incoming request object.
+        year (int): The year of the month to retrieve the summary for.
+        month (int): The month to retrieve the summary for.
+
+    Returns:
+        List[WeeklySummary_Pydantic]: The list of weekly summaries for the specified month and year.
+
+    Raises:
+        HTTPException: If there is an error retrieving the exercise summary.
+    """
+    user = await get_authenticated_user(request)
+    return await get_monthly_exercise_summary(user, year, month)
 
 
 if __name__ == "__main__":
