@@ -10,14 +10,11 @@ async def get_authenticated_user(request: Request) -> User:
     """
     Extract and validate the authenticated user from the request.
 
-    Args:
-        request (Request): The incoming request object.
-
-    Returns:
-        User: The authenticated user object.
-
-    Raises:
-        HTTPException: If the user is unauthorized.
+    :param request: The incoming request object.
+    :type request: Request
+    :return: The authenticated user object.
+    :rtype: User
+    :raises HTTPException: If the user is unauthorized.
     """
     user_dict = request.state.user.model_dump()
     if not user_dict:
@@ -410,9 +407,9 @@ async def get_user_exercise_summary(id: int, user: User) -> ExerciseSummaryBase:
             exercise_log_id=id, exercise_log__workout_session__user=user
         )
         return exercise_summary_obj
-    except DoesNotExist:
+    except DoesNotExist as e:
         raise HTTPException(
-            status_code=404, details=f"Failed to retrieve exercise summary: {e}"
+            status_code=404, detail=f"Failed to retrieve exercise summary: {e}"
         )
     except Exception as e:
         raise HTTPException(
@@ -435,13 +432,21 @@ async def create_user_exercise_summary(
     :rtype: ExerciseSummary
     """
     try:
+        # Check if an exercise summary already exists for the given exercise log ID
+        existing_summary = await ExerciseSummary.filter(exercise_log_id=id).first()
+        if existing_summary:
+            raise HTTPException(
+                status_code=400,
+                detail="Exercise summary already exists for this exercise log.",
+            )
         exercise_summary_obj = await ExerciseSummary.create(
             exercise_log_id=id, **summary.model_dump()
         )
         return exercise_summary_obj
+    
     except Exception as e:
         raise HTTPException(
-            status_code=404, detail=f"Failed to create exercise summary: {e}"
+            status_code=500, detail=f"Failed to create exercise summary: {e}"
         )
 
 
@@ -490,7 +495,9 @@ async def delete_user_exercise_summary(id: int, user: User) -> None:
     :return: None
     """
     try:
-        exercise_summary_obj = await ExerciseSummary.get(id=id, user=user)
+        exercise_summary_obj = await ExerciseSummary.get(
+            id=id, exercise_log__workout_session__user=user
+        )
         await exercise_summary_obj.delete()
     except DoesNotExist:
         raise HTTPException(status_code=404, detail=f"Exercise summary not found")
@@ -622,7 +629,6 @@ async def get_weekly_exercise_summary(user: User, week_start: datetime) -> dict:
     try:
         # Calculate the end date of the week
         week_end = week_start + timedelta(days=7)
-
         # Fetch all exercise logs for the user within the week
         exercise_logs = await ExerciseLog.filter(
             workout_session__user=user,

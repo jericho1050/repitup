@@ -1,7 +1,5 @@
-import pytest
-from project import app as fastapi_app
-from fastapi import Request
-from fastapi_azure_auth.user import User
+import pytest, random
+from datetime import date
 from conftest import *
 
 
@@ -196,10 +194,10 @@ async def test_get_exercise_logs(normal_user_client, created_workout_session_id)
 
 
 @pytest.mark.anyio
-async def test_get_exercise_log(normal_user_client, created_exericse_log_id):
+async def test_get_exercise_log(normal_user_client, created_exercise_log_id):
 
     response_1 = await normal_user_client.get(
-        f"/exercise-log/{created_exericse_log_id}/workout-session"
+        f"/exercise-log/{created_exercise_log_id}/workout-session"
     )
     response_2 = await normal_user_client.get("/exercise-log/123")
 
@@ -208,13 +206,13 @@ async def test_get_exercise_log(normal_user_client, created_exericse_log_id):
 
 
 @pytest.mark.anyio
-async def test_update_exercise_log(normal_user_client, created_exericse_log_id):
+async def test_update_exercise_log(normal_user_client, created_exercise_log_id):
     response_1 = await normal_user_client.patch(
-        f"/exercise-log/{created_exericse_log_id}/workout-session",
+        f"/exercise-log/{created_exercise_log_id}/workout-session",
         json={"sets": 1, "reps": 1, "intensity": 60, "exertion_scale": 7},
     )
     response_2 = await normal_user_client.patch(
-        f"/exercise-log/{created_exericse_log_id}/workout-session",
+        f"/exercise-log/{created_exercise_log_id}/workout-session",
         json={"sets": 1, "reps": 1, "weight": 69},
     )  # it's stilll 200 even though there some wrong field inputted in the body
     response_3 = await normal_user_client.patch(
@@ -227,12 +225,122 @@ async def test_update_exercise_log(normal_user_client, created_exericse_log_id):
 
 
 @pytest.mark.anyio
-async def test_delete_exercise_log(normal_user_client, created_exericse_log_id):
+async def test_delete_exercise_log(normal_user_client, created_exercise_log_id):
     response_1 = await normal_user_client.delete(
-        f"/exercise-log/{created_exericse_log_id}/workout-session"
+        f"/exercise-log/{created_exercise_log_id}/workout-session"
     )
     response_2 = await normal_user_client.delete(
         "/exercise-log/1233212312312/workout-session"
     )
     assert response_1.status_code == 204
     assert response_2.status_code == 404
+
+
+# TODO test exercise summary
+@pytest.mark.anyio
+async def test_create_exercise_summary(normal_user_client, created_exercise_log_id):
+    response_1 = await normal_user_client.post(
+        f"/exercise-summary/exercise-log/{created_exercise_log_id}",
+        json={"total_sets": 12, "total_reps": 60, "total_holds": 0},
+    )
+    response_2 = await normal_user_client.post(
+        "/exercise-summary/exercise-log/691233211",
+        json={"total_sets": 12, "total_reps": 60, "total_holds": 0},
+    )
+
+    assert (
+        response_1.status_code == 500
+    )  # Because of create_user_exercise_log, we automatically create an exercise summary for that particular exercise log.
+    assert response_2.status_code == 500
+
+
+@pytest.mark.anyio
+async def test_get_exercise_summary(normal_user_client, created_exercise_log_id):
+    response_1 = await normal_user_client.get(
+        f"/exercise-summary/exercise-log/{created_exercise_log_id}"
+    )
+    response_2 = await normal_user_client.get(
+        "/exercise-summary/exercise-log/691233211"
+    )
+
+    assert response_1.status_code == 200
+    assert response_2.status_code == 404
+
+    response_1_data = response_1.json()
+    assert len(response_1_data.keys()) == 4
+
+
+@pytest.mark.anyio
+async def test_update_exercise_summary(normal_user_client, created_exercise_summary_id):
+    response_1 = await normal_user_client.patch(
+        f"/exercise-summary/{created_exercise_summary_id}/exercise-log",
+        json={"total_sets": 1, "total_reps": 2, "total_holds": 3},
+    )
+    response_2 = await normal_user_client.patch(
+        "/exercise-summary/6903212/exercise-log",
+        json={"total_sets": 1, "total_reps": 2, "total_holds": 3},
+    )
+    assert response_1.status_code == 200
+    assert response_2.status_code == 404
+
+
+@pytest.mark.anyio
+async def test_delete_exercise_summary(normal_user_client, created_exercise_summary_id):
+    response_1 = await normal_user_client.delete(
+        f"/exercise-summary/{created_exercise_summary_id}/exercise-log"
+    )
+    response_2 = await normal_user_client.delete(
+        "/exercise-summary/6932312412/exercise-log"
+    )
+
+    assert response_1.status_code == 204
+    assert response_2.status_code == 404
+
+
+@pytest.mark.anyio
+async def test_get_current_month_exercise_summaries(normal_user_client):
+    date_now = date.today()
+    month = date_now.month
+    year = date_now.year
+    response_1 = await normal_user_client.get(f"/exercise-summary/{year}/{month}")
+    response_2 = await normal_user_client.get(
+        f"/exercise-summary/{year - 1000}/{month}"
+    )
+    assert response_1.status_code == 200
+    assert response_2.status_code == 200
+
+    response_1_data = response_1.json()
+    response_2_data = response_2.json()
+
+    assert len(response_1_data) in (5, 6)
+    assert len(response_2_data) in (5, 6)
+
+
+@pytest.mark.anyio
+async def test_get_random_month_exercise_summaries(normal_user_client):
+    date_now = date.today()
+    year = date_now.year
+    month = random.randint(1, 12)
+
+    response_1 = await normal_user_client.get(f"/exercise-summary/{year}/{month}")
+
+    assert response_1.status_code == 200
+
+@pytest.mark.anyio
+async def test_get_invalid_month_exercise_summaries(normal_user_client):
+    date_now = date.today()
+    year = date_now.year
+
+
+    response_1 = await normal_user_client.get(f"/exercise-summary/{year}/0")
+    # test with invalid year
+    response_2 = await normal_user_client.get(f"/exercise-summary/2000000000000/12")
+    response_3 = await normal_user_client.get(f"/exercise-summary/-2024/12")
+
+    assert response_1.status_code == 500
+    assert response_2.status_code == 500
+    assert response_3.status_code == 500
+
+
+
+

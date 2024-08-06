@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, date
 from typing import Optional
 from tortoise.contrib.pydantic import pydantic_model_creator, pydantic_queryset_creator
 from pydantic import BaseModel, field_validator
@@ -105,7 +105,7 @@ class ExerciseUpdate(BaseModel):
 class ExerciseSummaryBase(BaseModel):
     total_sets: int
     total_reps: int
-    total_iso_hold: int
+    total_holds: int
 
 
 class ExerciseSummaryCreate(ExerciseSummaryBase): ...
@@ -114,4 +114,15 @@ class ExerciseSummaryCreate(ExerciseSummaryBase): ...
 class ExerciseSummaryUpdate(BaseModel):
     total_sets: Optional[int] = None
     total_reps: Optional[int] = None
-    total_iso_hold: Optional[int] = None
+    total_holds: Optional[int] = None
+
+
+class WeeklySummary(BaseModel):
+    total_sets: int
+    total_reps: int
+    total_holds: int
+
+class WeeklySummary_Pydantic(BaseModel):
+    week_start: date
+    week_end: date
+    summary: WeeklySummary
