@@ -7,6 +7,7 @@ from project import azure_scheme
 from tortoise.contrib.test import finalizer, initializer
 import asgi_lifespan
 from project import app
+from models import ExerciseLog, ExerciseSummary
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -115,10 +116,19 @@ async def created_exercise_log_id(
 
 
 @pytest.fixture
-async def created_exercise_summary_id(normal_user_client, created_exercise_log_id):
-    response = await normal_user_client.post(
-        f"/exercise-summary/exercise-log/{created_exercise_log_id}"
+async def created_exercise_summary_id(created_workout_session_id, created_exercise_id):
+    exercise_log_obj = await ExerciseLog.create(
+        workout_session_id=created_workout_session_id,
+        exercise_id=created_exercise_id,
+        sets=3,
+        reps=6,
+        intensity=90,
+        exertion_scale=6,
     )
-    response_data = response.json()
-    created_id = response_data["id"]
-    return int(created_id)
+    exercise_summary_obj = await ExerciseSummary.create(
+        exercise_log_id=exercise_log_obj.id, total_sets=12, total_reps=18, total_holds=0
+    )
+
+    return int(exercise_summary_obj.id)
+
+
