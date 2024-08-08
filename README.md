@@ -6,6 +6,225 @@
 
 **Repitup**: a backend workout logger app using Fastapi + Tortoise ORM with Azure B2C authentication
 
+<!-- markdownlint-disable MD033 -->
+<details>
+
+<summary><h2>Walkthrough each module</h2></summary>
+
+Let's walk through each python file and what it does.
+
+### File Structure
+
+```text
+/repitup
+├── Dockerfile
+├── README.Docker.md
+├── README.md
+├── compose.yaml
+├── conftest.py
+├── controllers.py
+├── database.py
+├── env
+├── helpers.py
+├── migrations
+├── models.py
+├── project.py
+├── pyproject.toml
+├── requirements.txt
+├── schemas.py
+├── settings.py
+└── test_project.py
+
+directory: 2 file: 15
+
+ignored: directory (1)
+```
+
+### `conftest.py`
+
+In this configuration test file, the `@pytest.fixture`s' will be first executed, creating a user client and mockup data before running our test cases.
+
+```py
+# existing code..
+@pytest.fixture
+async def normal_user_client():
+    async def mock_normal_user(request: Request):
+        user = User(
+            claims={},
+            preferred_username="NormalUser",
+            roles=[],
+            aud="aud",
+            tid="tid",
+            access_token="123",
+            is_guest=False,
+            iat=1537231048,
+            nbf=1537231048,
+            exp=1537234948,
+            iss="iss",
+            aio="aio",
+            sub="sub",
+            oid="oid",
+            uti="uti",
+            rh="rh",
+            ver="2.0",
+        )
+        request.state.user = user
+        return user
+
+    fastapi_app.dependency_overrides[azure_scheme] = mock_normal_user
+    async with asgi_lifespan.LifespanManager(fastapi_app) as manager:
+        transport = ASGITransport(app=manager.app)
+        async with AsyncClient(transport=transport, base_url="http://test") as ac:
+            yield ac
+
+
+@pytest.fixture
+async def created_workout_plan_id(normal_user_client):
+    response = await normal_user_client.post(
+        "/workout-plans",
+        json={"name": "testing post method 1", "description": "testing description 1"},
+    )
+    response_data = response.json()
+    created_id = response_data["id"]
+
+    return int(created_id)
+# existing code..
+```
+
+### `controllers.py`
+
+The `controllers.py` will define our helper functions that carry out the CRUD operations that are going to be called in `project.py`.
+
+```py
+
+async def get_user_workout_plans(user: User) -> list[WorkoutPlanBase]:
+    """
+    Retrieve workout plans for a user.
+
+    :param user: The user for whom the workout plans are retrieved.
+    :return: A list of workout plans in the response model format.
+    :raises HTTPException: If there is an error retrieving the workout plans.
+    :rtype: list[]
+    """
+    try:
+        workout_plans = WorkoutPlan.filter(user=user)
+        return await WorkoutPlan_Pydantic_List.from_queryset(workout_plans)
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Failed to retrieve workout plans: {e}"
+        )
+```
+
+### `database.py`
+
+The `database.py` contains our database connection code, responsible for communicating with the database, and our models module.
+
+```py
+# existing code..
+
+# Tortoise ORM configuration
+TORTOISE_ORM = {
+    "connections": {
+        "default": get_db_uri(
+            user=os.getenv("USERNAME"),
+            password=os.getenv("PASSWORD"),
+            host=os.getenv("HOST"),
+            db=os.getenv("DB"),
+        ),
+    },
+    "apps": { 
+        "models": {
+            "models": ["aerich.models", "models"],  # Specify the location of your models
+            "default_connection": "default",
+        },
+    },
+}
+# existing code..
+```
+
+### `helpers.py`
+
+in this file it only contains few helper functions
+
+```py
+def get_db_uri(user, password, host, db):
+    return f"postgres://{user}:{password}@{host}:5432/{db}"
+```
+
+### `models.py`
+
+The `models.py` defines the database schema for **TORTOISE** to use. This allows **Tortoise ORM** to interact with the database using these models.
+
+```py
+# existing codes..
+
+class WorkoutPlan(models.Model):
+    user = fields.ForeignKeyField("models.User", on_delete=fields.CASCADE)
+    name = fields.CharField(max_length=25)
+    description = fields.TextField()
+
+
+class WorkoutSession(models.Model):
+    user = fields.ForeignKeyField("models.User", on_delete=fields.CASCADE)
+    date = fields.DatetimeField(auto_now_add=True)
+    comments = fields.TextField()
+
+# existing codes..
+```
+
+### `project.py`
+
+In this file, we're now putting everything together in 'project.py' and defining our REST endpoints; it will now call our helper functions in `controllers.py` and act as an intermediary between the model and view in a MVC pattern.
+
+```py
+@app.get(
+    "/workout-plan/{id}",
+    response_model=WorkoutPlan_Pydantic,
+    dependencies=[Security(azure_scheme)],
+)
+async def get_workout_plan(request: Request, id: int):
+    """
+    Retrieve a workout plan by its ID.
+
+    Args:
+        request (Request): The incoming request object.
+        id (int): The ID of the workout plan to retrieve.
+
+    Returns:
+        WorkoutPlan_Pydantic: The retrieved workout plan.
+
+    Raises:
+        HTTPException: If the workout plan with the given ID does not exist.
+    """
+    user = await get_authenticated_user(request)
+    return await get_user_workout_plan(id, user)
+
+
+@app.post(
+    "/workout-plans",
+    response_model=WorkoutPlan_Pydantic,
+    dependencies=[Security(azure_scheme)],
+)
+async def create_workout_plan(request: Request, workout_plan: WorkoutPlanCreate):
+    """
+    Create a new workout plan for the authenticated user.
+
+    Args:
+        request (Request): The incoming request object.
+        workout_plan (WorkoutPlanCreate): The workout plan data to be created.
+
+    Returns:
+        WorkoutPlan_Pydantic: The created workout plan.
+
+    Raises:
+        HTTPException: If there is an error creating the workout plan.
+    """
+    user = await get_authenticated_user(request)
+    return await create_user_workout_plan(user, workout_plan)
+```
+
+</details>
+
 ### Pre-resequite
 
 - [FastApi-Azure B2C Authentication](https://intility.github.io/fastapi-azure-auth/b2c/azure_setup) (Azure Configuration)
